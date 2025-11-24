@@ -9,7 +9,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const cors = require('cors');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
-
+const financialGoalRoutes = require('./routes/financialGoalRoutes');
 dotenv.config();
 
 // Connect to database
@@ -28,7 +28,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/analytics', analyticsRoutes);
-
+app.use('/api/goals', financialGoalRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

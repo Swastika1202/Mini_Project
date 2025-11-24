@@ -161,6 +161,39 @@ const api = {
     }
     return { data };
   },
+
+  getFinancialGoals: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/goals`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch financial goals");
+    }
+    return { data };
+  },
+
+  createFinancialGoal: async (goalData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/goals`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(goalData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to create financial goal");
+    }
+    return { data };
+  },
 };
 
 export default api;

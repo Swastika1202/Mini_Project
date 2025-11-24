@@ -25,16 +25,33 @@ const Profile = () => {
 
   const { toast } = useToast();
   
+  const calculateCompletionPercentage = () => {
+    const totalFields = 9; // firstName, lastName, email, phoneNumber, country, cityState, profession, location, linkedinUrl
+    let completedFields = 0;
+
+    if (firstName) completedFields++;
+    if (lastName) completedFields++;
+    if (email) completedFields++;
+    if (phoneNumber) completedFields++;
+    if (country) completedFields++;
+    if (cityState) completedFields++;
+    if (profession) completedFields++;
+    if (location) completedFields++;
+    if (linkedinUrl) completedFields++;
+
+    return Math.round((completedFields / totalFields) * 100);
+  };
+
   // Profile Completion Configuration
-  const completionPercentage = 82;
+  const initialCompletionPercentage = calculateCompletionPercentage();
   const radius = 64; // Radius of the circle
   const circumference = 2 * Math.PI * radius;
   
   // Animate progress on mount
   useEffect(() => {
-    const timer = setTimeout(() => setProgress(completionPercentage), 500);
+    const timer = setTimeout(() => setProgress(initialCompletionPercentage), 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [initialCompletionPercentage]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -51,6 +68,7 @@ const Profile = () => {
         setLocation(userData.location || '');
         setLinkedinUrl(userData.linkedinUrl || '');
         setNotifications(userData.notifications);
+        setProgress(calculateCompletionPercentage()); // Update progress after fetching profile
       } catch (error) {
         console.error("Failed to fetch profile:", error);
         toast({
@@ -82,6 +100,7 @@ const Profile = () => {
         description: "Profile updated successfully.",
       });
       setIsEditing(false); // Exit editing mode after saving
+      setProgress(calculateCompletionPercentage()); // Update progress after saving
     } catch (error) {
       console.error("Failed to update profile:", error);
       toast({
@@ -153,7 +172,7 @@ const Profile = () => {
                      />
                      {/* Progress Badge */}
                      <div className="absolute top-0 right-0 bg-[#10b981] text-white text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-white shadow-sm">
-                        {completionPercentage}%
+                        {initialCompletionPercentage}%
                      </div>
                  </div>
 
@@ -330,7 +349,7 @@ const Profile = () => {
                     </div>
                     <p className="text-xs text-slate-400 flex justify-between">
                         <span>Completion</span>
-                        <span className="text-white font-bold">{completionPercentage}%</span>
+                        <span className="text-white font-bold">{initialCompletionPercentage}%</span>
                     </p>
                     <div className="pt-2">
                         <button className="text-xs bg-[#005f73] hover:bg-[#004e5f] text-white w-full py-2 rounded-lg transition-colors font-bold">
@@ -340,33 +359,6 @@ const Profile = () => {
                  </div>
               </div>
 
-              {/* Preferences */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                 <h3 className="font-bold text-gray-800 mb-4">Quick Settings</h3>
-                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                          <Bell size={20} className="text-slate-400" />
-                          <span className="text-sm font-medium text-slate-700">Notifications</span>
-                       </div>
-                       <div 
-                          className={`w-10 h-6 rounded-full relative cursor-pointer ${notifications ? 'bg-[#005f73]' : 'bg-slate-200'}`}
-                          onClick={handleToggleNotifications}
-                        >
-                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${notifications ? 'right-1' : 'left-1'}`}></div>
-                       </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                          <User size={20} className="text-slate-400" />
-                          <span className="text-sm font-medium text-slate-700">Public Profile</span>
-                       </div>
-                       <div className="w-10 h-6 bg-slate-200 rounded-full relative cursor-pointer">
-                          <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
            </div>
         </div>
 
