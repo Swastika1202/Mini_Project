@@ -68,7 +68,7 @@ const Analytics = () => {
         const response = await api.getAnalyticsSummary(timeRange);
         const data = response.data;
         setNetWorth(data.netWorth);
-        setSavingsRate(data.savingsRate);
+        setSavingsRate(parseFloat(data.savingsRate));
         setAvgMonthlyCashflow(data.avgMonthlyCashflow);
         setCashflowTrends(data.cashflowTrends);
         setAssetAllocation(data.assetAllocation);
@@ -182,7 +182,39 @@ const Analytics = () => {
                </div>
                <div>
                   <p className="text-slate-500 font-medium text-sm mb-1">Savings Rate</p>
-                  <h3 className="text-3xl font-bold text-[#0a192f]">{savingsRate}%</h3>
+                  <div className="flex items-center justify-center relative w-24 h-24 mx-auto mt-2">
+                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                      <circle
+                        className="text-slate-200 stroke-current"
+                        strokeWidth="10"
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                      />
+                      <circle
+                        className="text-emerald-500 stroke-current transition-all duration-500 ease-out"
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 40}
+                        strokeDashoffset={2 * Math.PI * 40 - (Math.min(savingsRate, 100) / 100) * (2 * Math.PI * 40)}
+                        transform="rotate(-90 50 50)"
+                      />
+                      <text
+                        x="50"
+                        y="50"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="text-lg font-bold text-[#0a192f]"
+                      >
+                        {parseFloat(savingsRate).toFixed(0)}%
+                      </text>
+                    </svg>
+                  </div>
                </div>
            </div>
 
@@ -266,8 +298,8 @@ const Analytics = () => {
                                 const start = prevPercentages;
                                 const end = prevPercentages + percentage;
                                 const color = ['#005f73', '#0a9396', '#94d2bd', '#e9d8a6'][i % 4];
-                                return `${color} ${start}% ${end}%;`;
-                              }).join(', ')}` }}>
+                                return `${color} ${start}% ${end}%`;
+                              }).join(', ')})` }}>
                         </div>
                         <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
                             <span className="text-sm text-slate-400 font-medium uppercase">Total</span>

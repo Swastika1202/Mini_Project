@@ -24,12 +24,12 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
   }
 
   const incomes = await Income.find({
-    user: userId,
+    userId: userId,
     date: { $gte: startDate },
   });
 
   const expenses = await Expense.find({
-    user: userId,
+    userId: userId,
     date: { $gte: startDate },
   });
 

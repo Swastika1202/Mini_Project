@@ -219,8 +219,8 @@ const Dashboard = () => {
                     }}
                  ></div>
                  <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
-                    <span className="text-3xl font-bold text-[#0a192f]">45%</span>
-                    <span className="text-xs font-medium text-slate-400 uppercase">Housing</span>
+                    <span className="text-3xl font-bold text-[#0a192f]">{topSpendingCategories.length > 0 ? `${((topSpendingCategories[0].amount / totalExpenses) * 100).toFixed(0)}%` : '0%'}</span>
+                    <span className="text-xs font-medium text-slate-400 uppercase">{topSpendingCategories.length > 0 ? topSpendingCategories[0].category : 'N/A'}</span>
                  </div>
               </div>
 
