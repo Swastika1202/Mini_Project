@@ -1,0 +1,312 @@
+import React, { useState } from 'react';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import {
+  Activity,
+  TrendingUp,
+  Wallet,
+  Target,
+  Download,
+  MoreHorizontal,
+  Car,
+  Home
+} from 'lucide-react';
+
+const Analytics = () => {
+  const [timeRange, setTimeRange] = useState('This Year');
+  const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
+
+  // Mock Data for Comparison Chart
+  const financialData = [
+    { month: 'Jan', income: 4000, expense: 2400 },
+    { month: 'Feb', income: 4500, expense: 2100 },
+    { month: 'Mar', income: 4200, expense: 2800 },
+    { month: 'Apr', income: 5100, expense: 2600 },
+    { month: 'May', income: 4800, expense: 3200 },
+    { month: 'Jun', income: 5500, expense: 2900 },
+    { month: 'Jul', income: 5900, expense: 3100 },
+    { month: 'Aug', income: 6200, expense: 3500 },
+  ];
+
+  // Chart Dimensions & Scaling
+  const chartHeight = 300;
+  const chartWidth = financialData.length * 120 + 50;
+  const maxVal = 7000;
+
+  // Improved Scaling Function
+  const scaleY = (val: number) => {
+    // Leaves 50px padding at top/bottom
+    const plotHeight = chartHeight - 100; 
+    return (chartHeight - 50) - (val / maxVal) * plotHeight;
+  };
+  
+  const scaleX = (index: number) => index * 120 + 60; // Start at 60px
+
+  // Generate Path Commands
+  const generatePath = (dataKey: 'income' | 'expense') => {
+    return financialData.map((d, i) => 
+      `${i === 0 ? 'M' : 'L'} ${scaleX(i)} ${scaleY(d[dataKey])}`
+    ).join(' ');
+  };
+
+  const incomePath = generatePath('income');
+  const expensePath = generatePath('expense');
+
+  // Area fills (Closed paths)
+  const incomeArea = `${incomePath} L ${scaleX(financialData.length - 1)} ${chartHeight} L ${scaleX(0)} ${chartHeight} Z`;
+  const expenseArea = `${expensePath} L ${scaleX(financialData.length - 1)} ${chartHeight} L ${scaleX(0)} ${chartHeight} Z`;
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-8">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+           <div className="animate-in slide-in-from-left fade-in duration-500">
+              <h1 className="text-3xl font-bold text-[#0a192f]">Financial Analytics</h1>
+              <p className="text-slate-500 mt-1">Deep dive into your financial health and performance.</p>
+           </div>
+           
+           <div className="flex items-center gap-3 animate-in slide-in-from-right fade-in duration-500">
+              <select 
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="bg-white border border-slate-200 text-slate-600 text-sm rounded-xl px-4 py-2 outline-none focus:border-[#005f73] shadow-sm cursor-pointer"
+              >
+                 <option>Last 6 Months</option>
+                 <option>This Year</option>
+                 <option>All Time</option>
+              </select>
+              <button className="flex items-center gap-2 px-4 py-2 bg-[#005f73] text-white rounded-xl hover:bg-[#004e5f] transition-all font-bold text-sm shadow-md shadow-cyan-900/20 active:scale-95">
+                 <Download size={16} /> Report
+              </button>
+           </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group">
+               <div className="flex justify-between items-start mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                     <Wallet size={24} />
+                  </div>
+                  <span className="bg-indigo-50 text-indigo-600 text-xs font-bold px-2 py-1 rounded-lg">+12.5%</span>
+               </div>
+               <div>
+                  <p className="text-slate-500 font-medium text-sm mb-1">Net Worth</p>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">$142,500</h3>
+               </div>
+           </div>
+
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group">
+               <div className="flex justify-between items-start mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                     <Target size={24} />
+                  </div>
+                  <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2 py-1 rounded-lg">On Track</span>
+               </div>
+               <div>
+                  <p className="text-slate-500 font-medium text-sm mb-1">Savings Rate</p>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">32.4%</h3>
+               </div>
+           </div>
+
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group">
+               <div className="flex justify-between items-start mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-cyan-50 text-[#005f73] flex items-center justify-center group-hover:scale-110 transition-transform">
+                     <Activity size={24} />
+                  </div>
+                  <span className="bg-cyan-50 text-[#005f73] text-xs font-bold px-2 py-1 rounded-lg">Stable</span>
+               </div>
+               <div>
+                  <p className="text-slate-500 font-medium text-sm mb-1">Avg. Monthly Cashflow</p>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">$2,850</h3>
+               </div>
+           </div>
+        </div>
+
+        {/* Main Chart Section */}
+        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100">
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h3 className="font-bold text-xl text-[#0a192f]">Cashflow Trends</h3>
+                    <p className="text-sm text-slate-500 mt-1">Income vs Expenses over time</p>
+                </div>
+                <div className="flex gap-4 text-sm font-medium">
+                    <div className="flex items-center gap-2 text-slate-600">
+                        <div className="w-3 h-3 rounded-full bg-[#005f73]"></div> Income
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600">
+                        <div className="w-3 h-3 rounded-full bg-rose-500"></div> Expenses
+                    </div>
+                </div>
+            </div>
+
+            <div className="relative h-80 w-full overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-slate-200">
+                <div className="min-w-[800px] h-full relative">
+                    {/* Grid Lines */}
+                    <div className="absolute inset-0 flex flex-col justify-between text-slate-300 text-xs font-medium z-0 pointer-events-none pb-8">
+                        {[7000, 5250, 3500, 1750, 0].map((val, i) => (
+                            <div key={i} className="border-b border-dashed border-slate-100 w-full h-0 relative">
+                                <span className="absolute -top-2.5 -left-10 text-slate-400 w-8 text-right">${val/1000}k</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <svg className="absolute inset-0 w-full h-full z-10 overflow-visible" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="incomeGradientAnalytics" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#005f73" stopOpacity="0.1" />
+                                <stop offset="100%" stopColor="#005f73" stopOpacity="0" />
+                            </linearGradient>
+                            <linearGradient id="expenseGradientAnalytics" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.1" />
+                                <stop offset="100%" stopColor="#f43f5e" stopOpacity="0" />
+                            </linearGradient>
+                        </defs>
+
+                        {/* Income Layer */}
+                        <path d={incomeArea} fill="url(#incomeGradientAnalytics)" />
+                        <path d={incomePath} fill="none" stroke="#005f73" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+
+                        {/* Expense Layer */}
+                        <path d={expenseArea} fill="url(#expenseGradientAnalytics)" />
+                        <path d={expensePath} fill="none" stroke="#f43f5e" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+
+                        {/* Interactive Points */}
+                        {financialData.map((d, i) => (
+                            <g key={i} onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)} className="cursor-pointer">
+                                {/* Vertical Hover Line */}
+                                <line 
+                                    x1={scaleX(i)} y1="0" x2={scaleX(i)} y2={chartHeight} 
+                                    stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4 4" 
+                                    className={`transition-opacity duration-200 ${hoveredMonth === i ? 'opacity-100' : 'opacity-0'}`} 
+                                />
+                                
+                                {/* Invisible Hit Box for easier hovering */}
+                                <rect x={scaleX(i) - 40} y="0" width="80" height={chartHeight} fill="transparent" />
+
+                                {/* Visible Data Points */}
+                                <circle cx={scaleX(i)} cy={scaleY(d.income)} r={hoveredMonth === i ? 6 : 0} fill="white" stroke="#005f73" strokeWidth="3" className="transition-all duration-200 pointer-events-none" />
+                                <circle cx={scaleX(i)} cy={scaleY(d.expense)} r={hoveredMonth === i ? 6 : 0} fill="white" stroke="#f43f5e" strokeWidth="3" className="transition-all duration-200 pointer-events-none" />
+
+                                {/* Tooltip */}
+                                {hoveredMonth === i && (
+                                    <g transform={`translate(${scaleX(i) + 15}, ${Math.min(scaleY(d.income), scaleY(d.expense)) - 60})`}>
+                                        <rect x="0" y="0" width="110" height="70" rx="8" fill="#0a192f" className="shadow-xl" />
+                                        <text x="15" y="25" fill="#94a3b8" fontSize="10" fontWeight="bold" className="uppercase">{d.month} Stats</text>
+                                        <text x="15" y="42" fill="#2dd4bf" fontSize="11" fontWeight="bold">In: ${d.income.toLocaleString()}</text>
+                                        <text x="15" y="57" fill="#fb7185" fontSize="11" fontWeight="bold">Out: ${d.expense.toLocaleString()}</text>
+                                    </g>
+                                )}
+                            </g>
+                        ))}
+                    </svg>
+
+                    {/* X-Axis Labels */}
+                    <div className="absolute bottom-0 w-full flex text-xs font-bold text-slate-400">
+                        {financialData.map((d, i) => (
+                            <div key={i} className="absolute text-center w-20" style={{ left: scaleX(i) - 40 }}>
+                                <span className={`${hoveredMonth === i ? 'text-[#0a192f]' : ''} transition-colors`}>{d.month}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Bottom Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            {/* Asset Allocation */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-xl text-[#0a192f]">Asset Allocation</h3>
+                    <button className="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><MoreHorizontal size={20} /></button>
+                </div>
+                
+                <div className="flex items-center justify-center py-4 gap-8 flex-col sm:flex-row">
+                    <div className="relative w-48 h-48 shrink-0">
+                        <div className="w-full h-full rounded-full"
+                             style={{ background: 'conic-gradient(#005f73 0% 40%, #0a9396 40% 65%, #94d2bd 65% 80%, #e9d8a6 80% 100%)' }}>
+                        </div>
+                        <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
+                            <span className="text-sm text-slate-400 font-medium uppercase">Total</span>
+                            <span className="text-2xl font-bold text-[#0a192f]">$142k</span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 w-full">
+                        {[
+                            { label: 'Stocks & ETFs', val: '40%', color: 'bg-[#005f73]' },
+                            { label: 'Real Estate', val: '25%', color: 'bg-[#0a9396]' },
+                            { label: 'Crypto', val: '20%', color: 'bg-[#94d2bd]' },
+                            { label: 'Cash', val: '15%', color: 'bg-[#e9d8a6]' },
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className={`w-3 h-3 rounded-full ${item.color}`}></span>
+                                    <span className="text-sm font-medium text-slate-600">{item.label}</span>
+                                </div>
+                                <span className="text-sm font-bold text-[#0a192f]">{item.val}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Financial Goals */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-xl text-[#0a192f]">Financial Goals</h3>
+                    <button className="text-[#005f73] text-sm font-bold hover:underline">+ Add Goal</button>
+                </div>
+
+                <div className="space-y-6">
+                    {[
+                        { name: 'Emergency Fund', current: 15000, target: 20000, icon: Wallet, color: 'text-emerald-600', bar: 'bg-emerald-500' },
+                        { name: 'New Car', current: 8500, target: 25000, icon: Car, color: 'text-blue-600', bar: 'bg-blue-500' },
+                        { name: 'Dream Home', current: 45000, target: 150000, icon: Home, color: 'text-[#005f73]', bar: 'bg-[#005f73]' },
+                    ].map((goal, i) => {
+                        const percent = (goal.current / goal.target) * 100;
+                        return (
+                            <div key={i} className="group">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg bg-slate-50 ${goal.color}`}>
+                                            <goal.icon size={18} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-[#0a192f]">{goal.name}</p>
+                                            <p className="text-xs text-slate-400">${goal.current.toLocaleString()} / ${goal.target.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-600">{percent.toFixed(0)}%</span>
+                                </div>
+                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full rounded-full ${goal.bar} transition-all duration-1000 ease-out group-hover:scale-x-105 origin-left`} 
+                                        style={{ width: `${percent}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+
+                <div className="mt-8 p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex items-start gap-3">
+                    <TrendingUp size={20} className="text-indigo-600 mt-0.5 shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold text-indigo-800">Tip of the day</p>
+                        <p className="text-xs text-indigo-600 mt-1">Increasing your savings rate by just 5% can reduce your working years by 2 years.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default Analytics;
