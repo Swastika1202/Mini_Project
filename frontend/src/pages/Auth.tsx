@@ -67,7 +67,8 @@ const Auth = () => {
         }
 
         const response = await api.register({
-          name: firstName + " " + lastName, // Combine first and last name for the backend
+          firstName,
+          lastName,
           email,
           password,
           designation,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   TrendingUp,
@@ -15,6 +15,8 @@ import {
   Calendar as CalendarIcon,
   Zap
 } from 'lucide-react';
+import api from '../utils/api';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock Data Initial State
 const INITIAL_TRANSACTIONS = [
@@ -26,25 +28,53 @@ const INITIAL_TRANSACTIONS = [
 
 const Income = () => {
   // --- State Management ---
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const [transactions, setTransactions] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [hoveredWeek, setHoveredWeek] = useState<number | null>(null);
-  
-  // Form State
   const [newIncome, setNewIncome] = useState({
-    name: '',
-    ref: '',
-    date: new Date().toISOString().split('T')[0],
-    amount: '',
-    status: 'Received',
-    type: 'Freelance'
+      name: '',
+      ref: '',
+      date: new Date().toISOString().split('T')[0],
+      amount: '',
+      status: 'Received',
+      type: 'Freelance'
   });
+  const [hoveredWeek, setHoveredWeek] = useState<number | null>(null);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [pendingClearance, setPendingClearance] = useState(0);
+  const [avgTransaction, setAvgTransaction] = useState(0);
+  const [incomeGrowth, setIncomeGrowth] = useState([]);
+  const [topSources, setTopSources] = useState([]);
+  const [period, setPeriod] = useState('weekly'); // Default period
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    const fetchIncomeSummary = async () => {
+      try {
+        const response = await api.getIncomeSummary(period);
+        const data = response.data;
+        setTotalRevenue(data.totalRevenue);
+        setPendingClearance(data.pendingClearance);
+        setAvgTransaction(data.avgTransaction);
+        setIncomeGrowth(data.incomeGrowth);
+        setTopSources(data.topSources);
+        setTransactions(data.recentIncomes);
+      } catch (error) {
+        console.error("Failed to fetch income summary:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load income data.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchIncomeSummary();
+  }, [period, toast]);
 
   // --- Derived Metrics ---
-  const totalRevenue = transactions.reduce((acc, curr) => curr.status === 'Received' ? acc + curr.amt : acc, 0);
-  const pendingRevenue = transactions.reduce((acc, curr) => curr.status === 'Pending' ? acc + curr.amt : acc, 0);
-  const avgTransaction = totalRevenue / (transactions.filter(t => t.status === 'Received').length || 1);
-
+  // const totalRevenue = transactions.reduce((acc, curr) => curr.status === 'Received' ? acc + curr.amt : acc, 0);
+  // const pendingRevenue = transactions.reduce((acc, curr) => curr.status === 'Pending' ? acc + curr.amt : acc, 0);
+  // const avgTransaction = totalRevenue / (transactions.filter(t => t.status === 'Received').length || 1);
+  
   // --- Handlers ---
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -52,30 +82,50 @@ const Income = () => {
     setNewIncome(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddIncome = (e: React.FormEvent) => {
+  const handleAddIncome = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newIncome.name || !newIncome.amount) return;
 
-    const newTx = {
-      id: Date.now(),
-      name: newIncome.name,
-      ref: newIncome.ref || `INV-${Date.now().toString().slice(-4)}`,
-      date: newIncome.date,
-      status: newIncome.status,
-      amt: parseFloat(newIncome.amount),
-      type: newIncome.type
-    };
+    try {
+      await api.addIncome({
+        name: newIncome.name,
+        ref: newIncome.ref,
+        date: new Date(newIncome.date),
+        status: newIncome.status,
+        amount: parseFloat(newIncome.amount),
+        type: newIncome.type,
+      });
+      toast({
+        title: "Success",
+        description: "Income added successfully.",
+      });
+      setIsAddModalOpen(false);
+      setNewIncome({
+          name: '',
+          ref: '',
+          date: new Date().toISOString().split('T')[0],
+          amount: '',
+          status: 'Received',
+          type: 'Freelance'
+      });
+      // Refetch data after adding new income
+      const response = await api.getIncomeSummary(period);
+      const data = response.data;
+      setTotalRevenue(data.totalRevenue);
+      setPendingClearance(data.pendingClearance);
+      setAvgTransaction(data.avgTransaction);
+      setIncomeGrowth(data.incomeGrowth);
+      setTopSources(data.topSources);
+      setTransactions(data.recentIncomes);
 
-    setTransactions([newTx, ...transactions]);
-    setIsAddModalOpen(false);
-    setNewIncome({
-        name: '',
-        ref: '',
-        date: new Date().toISOString().split('T')[0],
-        amount: '',
-        status: 'Received',
-        type: 'Freelance'
-    });
+    } catch (error) {
+      console.error("Failed to add income:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add income.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExport = () => {
@@ -126,6 +176,21 @@ const Income = () => {
            </div>
            
            <div className="flex items-center gap-3 animate-in slide-in-from-right fade-in duration-500">
+              <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                 {[ 'weekly', 'monthly', 'yearly'].map((p) => (
+                    <button 
+                       key={p} 
+                       onClick={() => setPeriod(p)}
+                       className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+                          period === p 
+                          ? 'bg-[#005f73] text-white shadow-sm' 
+                          : 'text-slate-500 hover:text-[#005f73] hover:bg-slate-50'
+                       }`}
+                    >
+                       {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </button>
+                 ))}
+              </div>
               <button 
                 onClick={handleExport}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-[#005f73] transition-colors font-medium text-sm shadow-sm active:scale-95"
@@ -164,7 +229,7 @@ const Income = () => {
                </div>
                <div>
                   <p className="text-slate-500 font-medium text-sm mb-1">Pending Clearance</p>
-                  <h3 className="text-3xl font-bold text-[#0a192f]">{formatCurrency(pendingRevenue)}</h3>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">{formatCurrency(pendingClearance)}</h3>
                   <p className="text-xs font-bold text-amber-600 mt-2 bg-amber-50 inline-block px-2 py-0.5 rounded-md">{transactions.filter(t => t.status === 'Pending').length} invoices pending</p>
                </div>
            </div>
@@ -192,12 +257,14 @@ const Income = () => {
                        <TrendingUp size={22} className="text-[#005f73]" />
                        Income Growth
                     </h3>
-                    {hoveredWeek !== null ? (
+                    {hoveredWeek !== null && incomeGrowth.length > hoveredWeek ? (
                         <p className="text-sm text-[#005f73] font-medium animate-in fade-in">
-                            Week {hoveredWeek + 1}: <span className="font-bold">{formatCurrency(chartPoints[hoveredWeek].val)}</span>
+                            {period === 'weekly' ? `Week ${hoveredWeek + 1}` : period === 'monthly' ? `Day ${hoveredWeek + 1}` : `Month ${hoveredWeek + 1}`}: <span className="font-bold">{formatCurrency(incomeGrowth[hoveredWeek] || 0)}</span>
                         </p>
                     ) : (
-                        <p className="text-sm text-slate-500">Weekly breakdown</p>
+                        <p className="text-sm text-slate-500">{
+                          period === 'weekly' ? 'Weekly breakdown' : period === 'monthly' ? 'Daily breakdown' : 'Monthly breakdown'
+                        }</p>
                     )}
                   </div>
                   <div className="bg-[#e0f2f1] text-[#005f73] px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
@@ -225,43 +292,64 @@ const Income = () => {
                         </linearGradient>
                      </defs>
                      
-                     {/* Filled Area */}
-                     <path d={areaPath} fill="url(#incomeGradient)" />
+                     {/* Dynamic Path Generation for Filled Area */}
+                     {incomeGrowth.length > 0 && (
+                       <path d={`M0,300 L0,${300 - (incomeGrowth[0] / Math.max(...incomeGrowth, 1)) * 250} ` +
+                                incomeGrowth.map((val, index) => {
+                                  const x = (index / (incomeGrowth.length - 1)) * 1000;
+                                  const y = 300 - (val / Math.max(...incomeGrowth, 1)) * 250;
+                                  return `L${x},${y}`;
+                                }).join(' ') + ` L1000,300 Z`}
+                             fill="url(#incomeGradient)" />
+                     )}
                      
-                     {/* Stroke Line */}
-                     <path 
-                        d={curvePath} 
-                        fill="none" 
-                        stroke="#005f73" 
-                        strokeWidth="4" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                        className="drop-shadow-sm"
-                     />
+                     {/* Dynamic Path Generation for Stroke Line */}
+                     {incomeGrowth.length > 0 && (
+                       <path 
+                          d={`M0,${300 - (incomeGrowth[0] / Math.max(...incomeGrowth, 1)) * 250} ` +
+                               incomeGrowth.map((val, index) => {
+                                 const x = (index / (incomeGrowth.length - 1)) * 1000;
+                                 const y = 300 - (val / Math.max(...incomeGrowth, 1)) * 250;
+                                 return `L${x},${y}`;
+                               }).join(' ')}
+                          fill="none" 
+                          stroke="#005f73" 
+                          strokeWidth="4" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                          className="drop-shadow-sm"
+                       />
+                     )}
 
                      {/* Interactive Points */}
-                     {chartPoints.map((point, index) => (
-                        <g key={index} onMouseEnter={() => setHoveredWeek(index)} onMouseLeave={() => setHoveredWeek(null)}>
-                           {/* Invisible larger trigger area for easier hovering */}
-                           <circle cx={point.x} cy={point.y} r="20" fill="transparent" className="cursor-pointer" />
-                           
-                           {/* Visible Dot */}
-                           <circle 
-                              cx={point.x} 
-                              cy={point.y} 
-                              r={hoveredWeek === index ? 8 : 6} 
-                              fill="white" 
-                              stroke="#005f73" 
-                              strokeWidth="3" 
-                              className={`transition-all duration-300 pointer-events-none ${hoveredWeek === index ? 'filter drop-shadow-md' : ''}`}
-                           />
-                        </g>
-                     ))}
+                     {incomeGrowth.map((val, index) => {
+                        const x = (index / (incomeGrowth.length - 1)) * 1000;
+                        const y = 300 - (val / Math.max(...incomeGrowth, 1)) * 250;
+                        return (
+                           <g key={index} onMouseEnter={() => setHoveredWeek(index)} onMouseLeave={() => setHoveredWeek(null)}>
+                              {/* Invisible larger trigger area for easier hovering */}
+                              <circle cx={x} cy={y} r="20" fill="transparent" className="cursor-pointer" />
+                              
+                              {/* Visible Dot */}
+                              <circle 
+                                 cx={x} 
+                                 cy={y} 
+                                 r={hoveredWeek === index ? 8 : 6} 
+                                 fill="white" 
+                                 stroke="#005f73" 
+                                 strokeWidth="3" 
+                                 className={`transition-all duration-300 pointer-events-none ${hoveredWeek === index ? 'filter drop-shadow-md' : ''}`}
+                              />
+                           </g>
+                        );
+                     })}
                   </svg>
 
                   {/* X Axis Labels */}
                   <div className="absolute bottom-0 w-full flex justify-between px-2 text-xs font-bold text-slate-400 mt-2">
-                     <span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span><span>W6</span><span>W7</span><span>W8</span>
+                     {period === 'weekly' && (Array.from({ length: incomeGrowth.length }).map((_, i) => <span key={i}>W{i + 1}</span>))}
+                     {period === 'monthly' && (Array.from({ length: incomeGrowth.length }).map((_, i) => <span key={i}>Day {i + 1}</span>))}
+                     {period === 'yearly' && (Array.from({ length: incomeGrowth.length }).map((_, i) => <span key={i}>Month {i + 1}</span>))}
                   </div>
                </div>
            </div>
@@ -271,21 +359,21 @@ const Income = () => {
                <div>
                    <h3 className="font-bold text-xl text-[#0a192f] mb-6">Top Sources</h3>
                    <div className="space-y-6">
-                      {[
-                         { label: 'Freelance', amount: '$4,200', pct: 60, color: 'bg-[#005f73]' },
-                         { label: 'Salary', amount: '$3,100', pct: 30, color: 'bg-[#0a9396]' },
-                         { label: 'Investments', amount: '$1,150', pct: 10, color: 'bg-[#94d2bd]' },
-                      ].map((src, i) => (
+                      {topSources.map((src, i) => {
+                        const totalAmount = topSources.reduce((sum, s) => sum + s.amount, 0);
+                        const pct = totalAmount > 0 ? (src.amount / totalAmount) * 100 : 0;
+                        const color = ['bg-[#005f73]', 'bg-[#0a9396]', 'bg-[#94d2bd]', 'bg-[#e9d8a6]'][i % 4];
+                         return (
                          <div key={i} className="group cursor-default">
                             <div className="flex justify-between text-sm mb-2">
-                               <span className="font-medium text-slate-600 group-hover:text-[#005f73] transition-colors">{src.label}</span>
-                               <span className="font-bold text-[#0a192f]">{src.amount}</span>
+                               <span className="font-medium text-slate-600 group-hover:text-[#005f73] transition-colors">{src.type}</span>
+                               <span className="font-bold text-[#0a192f]">{formatCurrency(src.amount)}</span>
                             </div>
                             <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                               <div className={`h-full rounded-full ${src.color} transition-all duration-1000 ease-out`} style={{ width: `${src.pct}%` }}></div>
+                               <div className={`h-full rounded-full ${color} transition-all duration-1000 ease-out`} style={{ width: `${pct}%` }}></div>
                             </div>
                          </div>
-                      ))}
+                      )})}
                    </div>
                </div>
                
@@ -327,17 +415,17 @@ const Income = () => {
                      </thead>
                      <tbody className="divide-y divide-slate-100">
                         {transactions.map((row) => (
-                           <tr key={row.id} className="hover:bg-slate-50/50 transition-colors group">
+                           <tr key={row._id} className="hover:bg-slate-50/50 transition-colors group">
                               <td className="px-6 py-4">
                                  <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                                        <ArrowDownRight size={14} />
                                     </div>
-                                    <span className="font-bold text-[#0a192f] text-sm">{row.name}</span>
+                                    <span className="font-bold text-[#0a192f] text-sm">{row.title}</span>
                                  </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-slate-500">{row.ref}</td>
-                              <td className="px-6 py-4 text-sm text-slate-500">{row.date}</td>
+                              <td className="px-6 py-4 text-sm text-slate-500">{new Date(row.date).toLocaleDateString()}</td>
                               <td className="px-6 py-4">
                                  <span className={`px-2 py-1 rounded-full text-xs font-bold flex w-fit items-center gap-1 ${
                                     row.status === 'Received' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
@@ -347,7 +435,7 @@ const Income = () => {
                                  </span>
                               </td>
                               <td className="px-6 py-4 text-right font-bold text-emerald-600 text-sm">
-                                 +{formatCurrency(row.amt)}
+                                 +{formatCurrency(row.amount)}
                               </td>
                            </tr>
                         ))}

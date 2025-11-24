@@ -12,7 +12,7 @@ const generateToken = (id) => {
 // @access  Public
 const registerUser = async (req, res) => {
   console.log('Register User Request Body:', req.body);
-  const { name, email, password, designation } = req.body;
+  const { firstName, lastName, email, password, designation } = req.body;
 
   try {
     const userExists = await User.findOne({ email });
@@ -22,7 +22,8 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-      name,
+      firstName,
+      lastName,
       email,
       password,
       designation,
@@ -33,7 +34,8 @@ const registerUser = async (req, res) => {
     if (user) {
       res.status(201).json({
         _id: user._id,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         designation: user.designation,
         token: generateToken(user._id),
@@ -59,7 +61,8 @@ const loginUser = async (req, res) => {
     if (user && (await user.matchPassword(password))) {
       res.json({
         _id: user._id,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         designation: user.designation,
         token: generateToken(user._id),

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { 
   ArrowUpRight, 
@@ -14,9 +14,41 @@ import {
   MoreHorizontal,
   Search // <-- Ye add kar diya hai
 } from 'lucide-react';
+import api from '../utils/api';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const [period, setPeriod] = useState('Weekly');
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [netSavings, setNetSavings] = useState(0);
+  const [spendingTrendData, setSpendingTrendData] = useState([]);
+  const [topSpendingCategories, setTopSpendingCategories] = useState([]);
+  const [transactionHistory, setTransactionHistory] = useState([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await api.getDashboardSummary(period);
+        const dashboardData = response.data;
+        setTotalIncome(dashboardData.totalIncome);
+        setTotalExpenses(dashboardData.totalExpenses);
+        setNetSavings(dashboardData.netSavings);
+        setSpendingTrendData(dashboardData.spendingTrend);
+        setTopSpendingCategories(dashboardData.topSpendingCategories);
+        setTransactionHistory(dashboardData.transactions);
+      } catch (error) {
+        console.error("Failed to fetch dashboard summary:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchDashboardData();
+  }, [period, toast]);
 
   return (
     <DashboardLayout>
@@ -49,9 +81,9 @@ const Dashboard = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-             { title: 'Total Income', val: '$8,450.00', inc: '+15%', isPos: true, icon: ArrowDownRight, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-             { title: 'Total Expenses', val: '$2,205.50', inc: '-8%', isPos: true, icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' },
-             { title: 'Net Savings', val: '$6,244.50', inc: '+22%', isPos: true, icon: Wallet, color: 'text-[#005f73]', bg: 'bg-cyan-50' },
+             { title: 'Total Income', val: `$${totalIncome.toFixed(2)}`, inc: '+15%', isPos: true, icon: ArrowDownRight, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+             { title: 'Total Expenses', val: `$${totalExpenses.toFixed(2)}`, inc: '-8%', isPos: true, icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' },
+             { title: 'Net Savings', val: `$${netSavings.toFixed(2)}`, inc: '+22%', isPos: true, icon: Wallet, color: 'text-[#005f73]', bg: 'bg-cyan-50' },
           ].map((item, i) => (
              <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group cursor-default">
                 <div className="flex justify-between items-start mb-6">
@@ -108,28 +140,58 @@ const Dashboard = () => {
                           <stop offset="100%" stopColor="#005f73" stopOpacity="0" />
                        </linearGradient>
                     </defs>
-                    {/* Fill Area */}
-                    <path 
-                       d="M0,200 C100,150 200,220 300,100 C400,0 500,120 600,80 C700,50 800,150 1200,100 L1200,256 L0,256 Z" 
-                       fill="url(#gradient)" 
-                    />
-                    {/* Stroke Line */}
-                    <path 
-                       d="M0,200 C100,150 200,220 300,100 C400,0 500,120 600,80 C700,50 800,150 1200,100" 
-                       fill="none" 
-                       stroke="#005f73" 
-                       strokeWidth="4" 
-                       strokeLinecap="round"
-                       className="drop-shadow-lg"
-                    />
-                    {/* Points */}
-                    <circle cx="300" cy="100" r="6" fill="white" stroke="#005f73" strokeWidth="3" className="hover:scale-150 transition-all cursor-pointer"/>
-                    <circle cx="600" cy="80" r="6" fill="white" stroke="#005f73" strokeWidth="3" className="hover:scale-150 transition-all cursor-pointer"/>
+                    {/* Dynamic Path Generation */}
+                    {spendingTrendData.length > 1 && (
+                      <>
+                        {/* Fill Area */}
+                        <path 
+                           d={`M0,${250 - (spendingTrendData[0].amount / totalExpenses) * 200} ` +
+                              spendingTrendData.map((item, index) => {
+                                const x = (index / (spendingTrendData.length - 1)) * 1200;
+                                const y = 250 - (item.amount / totalExpenses) * 200;
+                                return `L${x},${y}`;
+                              }).join(' ') + ` L1200,256 L0,256 Z`}
+                           fill="url(#gradient)" 
+                        />
+                        {/* Stroke Line */}
+                        <path 
+                           d={`M0,${250 - (spendingTrendData[0].amount / totalExpenses) * 200} ` +
+                              spendingTrendData.map((item, index) => {
+                                const x = (index / (spendingTrendData.length - 1)) * 1200;
+                                const y = 250 - (item.amount / totalExpenses) * 200;
+                                return `L${x},${y}`;
+                              }).join(' ')}
+                           fill="none" 
+                           stroke="#005f73" 
+                           strokeWidth="4" 
+                           strokeLinecap="round"
+                           className="drop-shadow-lg"
+                        />
+                        {/* Points */}
+                        {spendingTrendData.map((item, index) => {
+                           const x = (index / (spendingTrendData.length - 1)) * 1200;
+                           const y = 250 - (item.amount / totalExpenses) * 200;
+                           return (
+                             <circle 
+                               key={index} 
+                               cx={x} 
+                               cy={y} 
+                               r="6" 
+                               fill="white" 
+                               stroke="#005f73" 
+                               strokeWidth="3" 
+                               className="hover:scale-150 transition-all cursor-pointer"/>
+                           );
+                        })}
+                      </>
+                    )}
                  </svg>
 
                  {/* X Axis Labels */}
                  <div className="absolute bottom-0 w-full flex justify-between text-xs font-bold text-slate-400 mt-2">
-                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    {period === 'Weekly' && (<span>Mon</span>)}<span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    {period === 'Monthly' && (<span>Week 1</span>)}<span>Week 2</span><span>Week 3</span><span>Week 4</span>
+                    {period === 'Yearly' && (<span>Jan</span>)}<span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
                  </div>
               </div>
            </div>
@@ -146,7 +208,14 @@ const Dashboard = () => {
                  <div 
                     className="w-full h-full rounded-full"
                     style={{
-                       background: 'conic-gradient(#005f73 0% 45%, #0a9396 45% 70%, #94d2bd 70% 85%, #e9d8a6 85% 100%)'
+                       background: `conic-gradient(${topSpendingCategories.map((cat, i, arr) => {
+                         const percentage = (cat.amount / totalExpenses) * 100;
+                         const prevPercentages = arr.slice(0, i).reduce((sum, pc) => sum + (pc.amount / totalExpenses) * 100, 0);
+                         const start = prevPercentages;
+                         const end = prevPercentages + percentage;
+                         const color = ['#005f73', '#0a9396', '#94d2bd', '#e9d8a6'][i % 4];
+                         return `${color} ${start}% ${end}%`;
+                       }).join(', ')}`
                     }}
                  ></div>
                  <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
@@ -156,17 +225,13 @@ const Dashboard = () => {
               </div>
 
               <div className="space-y-3">
-                 {[
-                    { label: 'Housing', val: '45%', color: 'bg-[#005f73]' },
-                    { label: 'Food', val: '25%', color: 'bg-[#0a9396]' },
-                    { label: 'Transport', val: '15%', color: 'bg-[#94d2bd]' },
-                 ].map((cat, i) => (
+                 {topSpendingCategories.map((cat, i) => (
                     <div key={i} className="flex justify-between items-center text-sm">
                        <div className="flex items-center gap-2">
-                          <span className={`w-3 h-3 rounded-full ${cat.color}`}></span>
-                          <span className="font-medium text-slate-600">{cat.label}</span>
+                          <span className={`w-3 h-3 rounded-full ${['bg-[#005f73]', 'bg-[#0a9396]', 'bg-[#94d2bd]', 'bg-[#e9d8a6]'][i % 4]}`}></span>
+                          <span className="font-medium text-slate-600">{cat.category}</span>
                        </div>
-                       <span className="font-bold text-[#0a192f]">{cat.val}</span>
+                       <span className="font-bold text-[#0a192f]">${cat.amount.toFixed(2)}</span>
                     </div>
                  ))}
               </div>
@@ -199,17 +264,12 @@ const Dashboard = () => {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
-                    {[
-                       { name: "Apple Store", desc: "Iphone 15 Pro Max", cat: "Electronics", date: "Nov 23, 2025", amt: "-$1,199.00", icon: ShoppingBag, color: "bg-slate-100 text-slate-700" },
-                       { name: "Starbucks", desc: "Morning Coffee", cat: "Dining", date: "Nov 23, 2025", amt: "-$5.50", icon: Coffee, color: "bg-orange-50 text-orange-600" },
-                       { name: "Uber Ride", desc: "Office Commute", cat: "Transport", date: "Nov 22, 2025", amt: "-$24.20", icon: Car, color: "bg-blue-50 text-blue-600" },
-                       { name: "Upwork Inc.", desc: "Project Payment", cat: "Income", date: "Nov 21, 2025", amt: "+$2,450.00", icon: ArrowDownRight, color: "bg-emerald-50 text-emerald-600" },
-                    ].map((tx, i) => (
+                    {transactionHistory.map((tx, i) => (
                        <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
                           <td className="px-6 py-4">
                              <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.color}`}>
-                                   <tx.icon size={18} />
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-700'}`}>
+                                   {tx.type === 'income' ? <ArrowDownRight size={18} /> : <ShoppingBag size={18} />}
                                 </div>
                                 <div>
                                    <p className="font-bold text-[#0a192f] text-sm">{tx.name}</p>
@@ -218,11 +278,11 @@ const Dashboard = () => {
                              </div>
                           </td>
                           <td className="px-6 py-4">
-                             <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">{tx.cat}</span>
+                             <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">{tx.category}</span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-500 font-medium">{tx.date}</td>
-                          <td className={`px-6 py-4 font-bold text-sm ${tx.amt.startsWith('+') ? 'text-emerald-600' : 'text-red-600'}`}>
-                             {tx.amt}
+                          <td className="px-6 py-4 text-sm text-slate-500 font-medium">{new Date(tx.date).toLocaleDateString()}</td>
+                          <td className={`px-6 py-4 font-bold text-sm ${tx.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                             {tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}
                           </td>
                           <td className="px-6 py-4 text-right">
                              <button className="p-2 text-slate-300 hover:text-[#005f73] transition-colors">

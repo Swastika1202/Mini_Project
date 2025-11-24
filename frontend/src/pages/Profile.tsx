@@ -1,14 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
-  Mail, Phone, MapPin, Bell, 
-  Camera, CheckCircle2, Globe, User, 
+import {
+  Mail, Phone, MapPin, Bell,
+  Camera, CheckCircle2, Globe, User,
   Award, Linkedin
 } from 'lucide-react';
+import api from '../utils/api';
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('edit');
   const [progress, setProgress] = useState(0);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [country, setCountry] = useState('');
+  const [cityState, setCityState] = useState('');
+  const [profession, setProfession] = useState('');
+  const [location, setLocation] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [notifications, setNotifications] = useState(true);
+
+  const { toast } = useToast();
   
   // Profile Completion Configuration
   const completionPercentage = 82;
@@ -20,6 +34,65 @@ const Profile = () => {
     const timer = setTimeout(() => setProgress(completionPercentage), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.getProfile();
+        const userData = response.data;
+        setFirstName(userData.firstName);
+        setLastName(userData.lastName);
+        setEmail(userData.email);
+        setPhoneNumber(userData.phoneNumber || '');
+        setCountry(userData.country || '');
+        setCityState(userData.cityState || '');
+        setProfession(userData.profession || '');
+        setLocation(userData.location || '');
+        setLinkedinUrl(userData.linkedinUrl || '');
+        setNotifications(userData.notifications);
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchProfile();
+  }, [toast]);
+
+  const handleSaveChanges = async () => {
+    try {
+      await api.updateProfile({
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        country,
+        cityState,
+        profession,
+        location,
+        linkedinUrl,
+        notifications,
+      });
+      toast({
+        title: "Success",
+        description: "Profile updated successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleNotifications = () => {
+    setNotifications(!notifications);
+  };
 
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
@@ -68,7 +141,7 @@ const Profile = () => {
                  {/* Avatar Image */}
                  <div className="relative z-10">
                      <img 
-                       src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" 
+                       src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName + lastName}`} 
                        alt="Profile"
                        className="w-32 h-32 rounded-full border-4 border-white shadow-md bg-white object-cover"
                      />
@@ -86,17 +159,20 @@ const Profile = () => {
               
               <div className="flex-1 mb-2">
                  <h1 className="text-3xl font-bold text-[#0a192f] flex items-center gap-2">
-                    Alex Doe 
+                    {firstName} {lastName}
                     <CheckCircle2 size={24} className="text-[#0a9396]" fill="currentColor" color="white" />
                  </h1>
-                 <p className="text-slate-500 font-medium">Product Designer • New York, USA</p>
+                 <p className="text-slate-500 font-medium">{profession} • {location}</p>
               </div>
 
               <div className="flex gap-3 mb-2">
                  <button className="px-6 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:border-[#005f73] hover:text-[#005f73] transition-colors">
                     Preview
                  </button>
-                 <button className="px-6 py-2.5 rounded-xl bg-[#005f73] text-white font-bold shadow-lg shadow-[#005f73]/20 hover:bg-[#004e5f] transition-colors">
+                 <button 
+                    className="px-6 py-2.5 rounded-xl bg-[#005f73] text-white font-bold shadow-lg shadow-[#005f73]/20 hover:bg-[#004e5f] transition-colors"
+                    onClick={handleSaveChanges}
+                 >
                     Save Changes
                  </button>
               </div>
@@ -132,24 +208,44 @@ const Profile = () => {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                        <label className="text-xs font-bold text-slate-500 uppercase">First Name</label>
-                       <input type="text" defaultValue="Alex" className="w-full px-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-bold border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" />
+                       <input 
+                          type="text" 
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="w-full px-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-bold border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-xs font-bold text-slate-500 uppercase">Last Name</label>
-                       <input type="text" defaultValue="Doe" className="w-full px-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-bold border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" />
+                       <input 
+                          type="text" 
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="w-full px-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-bold border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-xs font-bold text-slate-500 uppercase">Email Address</label>
                        <div className="relative">
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                          <input type="email" defaultValue="alex.doe@example.com" className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" />
+                          <input 
+                             type="email" 
+                             value={email}
+                             onChange={(e) => setEmail(e.target.value)}
+                             className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
+                          />
                        </div>
                     </div>
                     <div className="space-y-2">
                        <label className="text-xs font-bold text-slate-500 uppercase">Phone Number</label>
                        <div className="relative">
                           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                          <input type="tel" defaultValue="+1 (555) 123-4567" className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" />
+                          <input 
+                             type="tel" 
+                             value={phoneNumber}
+                             onChange={(e) => setPhoneNumber(e.target.value)}
+                             className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
+                          />
                        </div>
                     </div>
                  </div>
@@ -161,14 +257,24 @@ const Profile = () => {
                           <label className="text-xs font-bold text-slate-500 uppercase">Country</label>
                           <div className="relative">
                              <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                             <input type="text" defaultValue="United States" className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" />
+                             <input 
+                                type="text" 
+                                value={country}
+                                onChange={(e) => setCountry(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
+                             />
                           </div>
                        </div>
                        <div className="space-y-2">
                           <label className="text-xs font-bold text-slate-500 uppercase">City/State</label>
                           <div className="relative">
                              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                             <input type="text" defaultValue="New York, NY" className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" />
+                             <input 
+                                type="text" 
+                                value={cityState}
+                                onChange={(e) => setCityState(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
+                             />
                           </div>
                        </div>
                     </div>
@@ -184,6 +290,8 @@ const Profile = () => {
                           <input 
                             type="url" 
                             placeholder="https://linkedin.com/in/username" 
+                            value={linkedinUrl}
+                            onChange={(e) => setLinkedinUrl(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
                           />
                        </div>
@@ -231,8 +339,11 @@ const Profile = () => {
                           <Bell size={20} className="text-slate-400" />
                           <span className="text-sm font-medium text-slate-700">Notifications</span>
                        </div>
-                       <div className="w-10 h-6 bg-[#005f73] rounded-full relative cursor-pointer">
-                          <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
+                       <div 
+                          className={`w-10 h-6 rounded-full relative cursor-pointer ${notifications ? 'bg-[#005f73]' : 'bg-slate-200'}`}
+                          onClick={handleToggleNotifications}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${notifications ? 'right-1' : 'left-1'}`}></div>
                        </div>
                     </div>
                     <div className="flex items-center justify-between">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Activity,
@@ -10,27 +10,47 @@ import {
   Car,
   Home
 } from 'lucide-react';
+import api from '../utils/api';
+import { useToast } from '@/hooks/use-toast';
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState('This Year');
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
+  const [netWorth, setNetWorth] = useState(0);
+  const [savingsRate, setSavingsRate] = useState(0);
+  const [avgMonthlyCashflow, setAvgMonthlyCashflow] = useState(0);
+  const [cashflowTrends, setCashflowTrends] = useState([]);
+  const [assetAllocation, setAssetAllocation] = useState([]);
+  const [financialGoals, setFinancialGoals] = useState([]);
+  const { toast } = useToast();
 
-  // Mock Data for Comparison Chart
-  const financialData = [
-    { month: 'Jan', income: 4000, expense: 2400 },
-    { month: 'Feb', income: 4500, expense: 2100 },
-    { month: 'Mar', income: 4200, expense: 2800 },
-    { month: 'Apr', income: 5100, expense: 2600 },
-    { month: 'May', income: 4800, expense: 3200 },
-    { month: 'Jun', income: 5500, expense: 2900 },
-    { month: 'Jul', income: 5900, expense: 3100 },
-    { month: 'Aug', income: 6200, expense: 3500 },
-  ];
+  useEffect(() => {
+    const fetchAnalyticsSummary = async () => {
+      try {
+        const response = await api.getAnalyticsSummary(timeRange);
+        const data = response.data;
+        setNetWorth(data.netWorth);
+        setSavingsRate(data.savingsRate);
+        setAvgMonthlyCashflow(data.avgMonthlyCashflow);
+        setCashflowTrends(data.cashflowTrends);
+        setAssetAllocation(data.assetAllocation);
+        setFinancialGoals(data.financialGoals);
+      } catch (error) {
+        console.error("Failed to fetch analytics summary:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load analytics data.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchAnalyticsSummary();
+  }, [timeRange, toast]);
 
   // Chart Dimensions & Scaling
   const chartHeight = 300;
-  const chartWidth = financialData.length * 120 + 50;
-  const maxVal = 7000;
+  const chartWidth = cashflowTrends.length * 120 + 50; // Dynamic width
+  const maxVal = Math.max(...cashflowTrends.flatMap(d => [d.income, d.expense]), 1000); // Dynamic max value
 
   // Improved Scaling Function
   const scaleY = (val: number) => {
@@ -43,7 +63,8 @@ const Analytics = () => {
 
   // Generate Path Commands
   const generatePath = (dataKey: 'income' | 'expense') => {
-    return financialData.map((d, i) => 
+    if (cashflowTrends.length === 0) return "";
+    return cashflowTrends.map((d, i) => 
       `${i === 0 ? 'M' : 'L'} ${scaleX(i)} ${scaleY(d[dataKey])}`
     ).join(' ');
   };
@@ -52,8 +73,8 @@ const Analytics = () => {
   const expensePath = generatePath('expense');
 
   // Area fills (Closed paths)
-  const incomeArea = `${incomePath} L ${scaleX(financialData.length - 1)} ${chartHeight} L ${scaleX(0)} ${chartHeight} Z`;
-  const expenseArea = `${expensePath} L ${scaleX(financialData.length - 1)} ${chartHeight} L ${scaleX(0)} ${chartHeight} Z`;
+  const incomeArea = `${incomePath} L ${scaleX(cashflowTrends.length - 1)} ${chartHeight} L ${scaleX(0)} ${chartHeight} Z`;
+  const expenseArea = `${expensePath} L ${scaleX(cashflowTrends.length - 1)} ${chartHeight} L ${scaleX(0)} ${chartHeight} Z`;
 
   return (
     <DashboardLayout>
@@ -93,7 +114,7 @@ const Analytics = () => {
                </div>
                <div>
                   <p className="text-slate-500 font-medium text-sm mb-1">Net Worth</p>
-                  <h3 className="text-3xl font-bold text-[#0a192f]">$142,500</h3>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">${netWorth.toLocaleString()}</h3>
                </div>
            </div>
 
@@ -106,7 +127,7 @@ const Analytics = () => {
                </div>
                <div>
                   <p className="text-slate-500 font-medium text-sm mb-1">Savings Rate</p>
-                  <h3 className="text-3xl font-bold text-[#0a192f]">32.4%</h3>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">{savingsRate}%</h3>
                </div>
            </div>
 
@@ -119,7 +140,7 @@ const Analytics = () => {
                </div>
                <div>
                   <p className="text-slate-500 font-medium text-sm mb-1">Avg. Monthly Cashflow</p>
-                  <h3 className="text-3xl font-bold text-[#0a192f]">$2,850</h3>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">${parseFloat(avgMonthlyCashflow).toLocaleString()}</h3>
                </div>
            </div>
         </div>
@@ -145,9 +166,9 @@ const Analytics = () => {
                 <div className="min-w-[800px] h-full relative">
                     {/* Grid Lines */}
                     <div className="absolute inset-0 flex flex-col justify-between text-slate-300 text-xs font-medium z-0 pointer-events-none pb-8">
-                        {[7000, 5250, 3500, 1750, 0].map((val, i) => (
+                        {[maxVal, maxVal * 0.75, maxVal * 0.5, maxVal * 0.25, 0].map((val, i) => (
                             <div key={i} className="border-b border-dashed border-slate-100 w-full h-0 relative">
-                                <span className="absolute -top-2.5 -left-10 text-slate-400 w-8 text-right">${val/1000}k</span>
+                                <span className="absolute -top-2.5 -left-10 text-slate-400 w-8 text-right">${(val/1000).toFixed(0)}k</span>
                             </div>
                         ))}
                     </div>
@@ -165,15 +186,15 @@ const Analytics = () => {
                         </defs>
 
                         {/* Income Layer */}
-                        <path d={incomeArea} fill="url(#incomeGradientAnalytics)" />
-                        <path d={incomePath} fill="none" stroke="#005f73" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+                        {cashflowTrends.length > 0 && <path d={incomeArea} fill="url(#incomeGradientAnalytics)" />}
+                        {cashflowTrends.length > 0 && <path d={incomePath} fill="none" stroke="#005f73" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
 
                         {/* Expense Layer */}
-                        <path d={expenseArea} fill="url(#expenseGradientAnalytics)" />
-                        <path d={expensePath} fill="none" stroke="#f43f5e" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+                        {cashflowTrends.length > 0 && <path d={expenseArea} fill="url(#expenseGradientAnalytics)" />}
+                        {cashflowTrends.length > 0 && <path d={expensePath} fill="none" stroke="#f43f5e" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
 
                         {/* Interactive Points */}
-                        {financialData.map((d, i) => (
+                        {cashflowTrends.map((d, i) => (
                             <g key={i} onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)} className="cursor-pointer">
                                 {/* Vertical Hover Line */}
                                 <line 
@@ -204,7 +225,7 @@ const Analytics = () => {
 
                     {/* X-Axis Labels */}
                     <div className="absolute bottom-0 w-full flex text-xs font-bold text-slate-400">
-                        {financialData.map((d, i) => (
+                        {cashflowTrends.map((d, i) => (
                             <div key={i} className="absolute text-center w-20" style={{ left: scaleX(i) - 40 }}>
                                 <span className={`${hoveredMonth === i ? 'text-[#0a192f]' : ''} transition-colors`}>{d.month}</span>
                             </div>
@@ -227,27 +248,29 @@ const Analytics = () => {
                 <div className="flex items-center justify-center py-4 gap-8 flex-col sm:flex-row">
                     <div className="relative w-48 h-48 shrink-0">
                         <div className="w-full h-full rounded-full"
-                             style={{ background: 'conic-gradient(#005f73 0% 40%, #0a9396 40% 65%, #94d2bd 65% 80%, #e9d8a6 80% 100%)' }}>
+                             style={{ background: `conic-gradient(${assetAllocation.map((asset, i, arr) => {
+                                const percentage = asset.percentage;
+                                const prevPercentages = arr.slice(0, i).reduce((sum, pa) => sum + pa.percentage, 0);
+                                const start = prevPercentages;
+                                const end = prevPercentages + percentage;
+                                const color = ['#005f73', '#0a9396', '#94d2bd', '#e9d8a6'][i % 4];
+                                return `${color} ${start}% ${end}%`;
+                              }).join(', ')}` }}>
                         </div>
                         <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
                             <span className="text-sm text-slate-400 font-medium uppercase">Total</span>
-                            <span className="text-2xl font-bold text-[#0a192f]">$142k</span>
+                            <span className="text-2xl font-bold text-[#0a192f]">${netWorth.toLocaleString()}</span>
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-4 w-full">
-                        {[
-                            { label: 'Stocks & ETFs', val: '40%', color: 'bg-[#005f73]' },
-                            { label: 'Real Estate', val: '25%', color: 'bg-[#0a9396]' },
-                            { label: 'Crypto', val: '20%', color: 'bg-[#94d2bd]' },
-                            { label: 'Cash', val: '15%', color: 'bg-[#e9d8a6]' },
-                        ].map((item, i) => (
+                        {assetAllocation.map((item, i) => (
                             <div key={i} className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <span className={`w-3 h-3 rounded-full ${item.color}`}></span>
+                                    <span className={`w-3 h-3 rounded-full ${['bg-[#005f73]', 'bg-[#0a9396]', 'bg-[#94d2bd]', 'bg-[#e9d8a6]'][i % 4]}`}></span>
                                     <span className="text-sm font-medium text-slate-600">{item.label}</span>
                                 </div>
-                                <span className="text-sm font-bold text-[#0a192f]">{item.val}</span>
+                                <span className="text-sm font-bold text-[#0a192f]">{item.percentage}%</span>
                             </div>
                         ))}
                     </div>
@@ -262,18 +285,23 @@ const Analytics = () => {
                 </div>
 
                 <div className="space-y-6">
-                    {[
-                        { name: 'Emergency Fund', current: 15000, target: 20000, icon: Wallet, color: 'text-emerald-600', bar: 'bg-emerald-500' },
-                        { name: 'New Car', current: 8500, target: 25000, icon: Car, color: 'text-blue-600', bar: 'bg-blue-500' },
-                        { name: 'Dream Home', current: 45000, target: 150000, icon: Home, color: 'text-[#005f73]', bar: 'bg-[#005f73]' },
-                    ].map((goal, i) => {
+                    {financialGoals.map((goal, i) => {
                         const percent = (goal.current / goal.target) * 100;
+                        const goalIcon = {
+                          Wallet: Wallet,
+                          Car: Car,
+                          Home: Home,
+                        }[goal.icon] || Wallet;
                         return (
                             <div key={i} className="group">
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-lg bg-slate-50 ${goal.color}`}>
-                                            <goal.icon size={18} />
+                                        <div className={`p-2 rounded-lg bg-slate-50 ${
+                                            goal.name === 'Emergency Fund' ? 'text-emerald-600' :
+                                            goal.name === 'New Car' ? 'text-blue-600' :
+                                            goal.name === 'Dream Home' ? 'text-[#005f73]' : ''
+                                        }`}>
+                                            {React.createElement(goalIcon, { size: 18 })}
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-[#0a192f]">{goal.name}</p>
@@ -284,7 +312,7 @@ const Analytics = () => {
                                 </div>
                                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                     <div 
-                                        className={`h-full rounded-full ${goal.bar} transition-all duration-1000 ease-out group-hover:scale-x-105 origin-left`} 
+                                        className={`h-full rounded-full ${percent > 75 ? 'bg-emerald-500' : percent > 50 ? 'bg-yellow-500' : 'bg-blue-500'} transition-all duration-1000 ease-out group-hover:scale-x-105 origin-left`} 
                                         style={{ width: `${percent}%` }}
                                     ></div>
                                 </div>

@@ -45,6 +45,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/auth');
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] flex font-sans text-[#0a192f]">
       
@@ -123,7 +128,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             {!isCollapsed && <span>Support</span>}
           </button>
           <button
-            onClick={() => navigate('/')}
+            onClick={handleLogout}
             className={`flex items-center gap-3 px-3 py-3 text-slate-500 hover:text-red-600 hover:bg-red-50 w-full rounded-xl transition-colors font-medium text-sm ${isCollapsed ? 'justify-center' : ''}`}
           >
             <LogOut size={20} />
