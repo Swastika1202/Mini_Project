@@ -16,9 +16,14 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
   },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null values to not violate unique constraint
+  },
   password: {
     type: String,
-    required: true,
+    required: function() { return !this.googleId; } // Password is required only if not a Google user
   },
   designation: {
     type: String,
@@ -41,6 +46,10 @@ const UserSchema = new mongoose.Schema({
   location: {
     type: String,
   },
+  avatar: {
+    type: String,
+    default: 'https://res.cloudinary.com/dkhhgyrjc/image/upload/v1709460293/avatar_udfn5b.png',
+  },
   notifications: {
     type: Boolean,
     default: true,
@@ -53,6 +62,8 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
 });
 
 // Hash password before saving

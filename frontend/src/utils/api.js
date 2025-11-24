@@ -2,12 +2,22 @@ const API_BASE_URL = "http://localhost:5000/api"; // Assuming your backend runs 
 
 const api = {
   register: async (userData) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const headers = {};
+    let body;
+
+    if (userData instanceof FormData) {
+      body = userData;
+      // When sending FormData, the browser automatically sets the Content-Type to multipart/form-data
+      // including the boundary. Manually setting it often causes issues.
+    } else {
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(userData);
+    }
+
+    const response = await fetch(${API_BASE_URL}/auth/register, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
+      headers,
+      body,
     });
     const data = await response.json();
     if (!response.ok) {
@@ -17,7 +27,7 @@ const api = {
   },
 
   login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(${API_BASE_URL}/auth/login, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -33,11 +43,11 @@ const api = {
 
   getProfile: async () => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/profile`, {
+    const response = await fetch(${API_BASE_URL}/profile, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
     });
     const data = await response.json();
@@ -49,11 +59,11 @@ const api = {
 
   updateProfile: async (profileData) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/profile`, {
+    const response = await fetch(${API_BASE_URL}/profile, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
       body: JSON.stringify(profileData),
     });
@@ -66,11 +76,11 @@ const api = {
 
   getDashboardSummary: async (period) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/dashboard?period=${period}`, {
+    const response = await fetch(${API_BASE_URL}/dashboard?period=${period}, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
     });
     const data = await response.json();
@@ -82,11 +92,11 @@ const api = {
 
   getIncomeSummary: async (period) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/income/summary?period=${period}`, {
+    const response = await fetch(${API_BASE_URL}/income/summary?period=${period}, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
     });
     const data = await response.json();
@@ -98,11 +108,11 @@ const api = {
 
   addIncome: async (incomeData) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/income`, {
+    const response = await fetch(${API_BASE_URL}/income, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
       body: JSON.stringify(incomeData),
     });
@@ -115,11 +125,11 @@ const api = {
 
   getExpenseSummary: async (period) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/expenses/summary?period=${period}`, {
+    const response = await fetch(${API_BASE_URL}/expenses/summary?period=${period}, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
     });
     const data = await response.json();
@@ -131,11 +141,11 @@ const api = {
 
   addExpense: async (expenseData) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/expenses`, {
+    const response = await fetch(${API_BASE_URL}/expenses, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
       body: JSON.stringify(expenseData),
     });
@@ -148,11 +158,11 @@ const api = {
 
   getAnalyticsSummary: async (timeRange) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/analytics?timeRange=${timeRange}`, {
+    const response = await fetch(${API_BASE_URL}/analytics?timeRange=${timeRange}, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
     });
     const data = await response.json();
@@ -164,11 +174,11 @@ const api = {
 
   getFinancialGoals: async () => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/goals`, {
+    const response = await fetch(${API_BASE_URL}/goals, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
     });
     const data = await response.json();
@@ -180,11 +190,11 @@ const api = {
 
   createFinancialGoal: async (goalData) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/goals`, {
+    const response = await fetch(${API_BASE_URL}/goals, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: Bearer ${token},
       },
       body: JSON.stringify(goalData),
     });

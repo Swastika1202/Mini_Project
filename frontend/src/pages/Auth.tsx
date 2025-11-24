@@ -19,16 +19,29 @@ const Auth = () => {
   const [firstName, setFirstName] = useState(""); // Restored firstName state
   const [lastName, setLastName] = useState(""); // Restored lastName state
   const [loading, setLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null); // New state for avatar file
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null); // New state for avatar preview
   
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    } else {
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    }
+  };
 
   // const handleGoogleLogin = async () => { // Removed Google Login function
   //   try {
   //     const { error } = await supabase.auth.signInWithOAuth({
   //       provider: 'google',
   //       options: {
-  //         redirectTo: `${window.location.origin}/`,
+  //         redirectTo: ${window.location.origin}/,
   //       },
   //     });
   //     if (error) throw error;
@@ -66,13 +79,17 @@ const Auth = () => {
           throw new Error("Passwords do not match.");
         }
 
-        const response = await api.register({
-          firstName,
-          lastName,
-          email,
-          password,
-          designation,
-        });
+        const formData = new FormData();
+        formData.append('firstName', firstName);
+        formData.append('lastName', lastName);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('designation', designation);
+        if (avatarFile) {
+          formData.append('avatar', avatarFile);
+        }
+
+        const response = await api.register(formData);
         
         // if (error) throw error; // Supabase error handling removed
         
@@ -158,11 +175,10 @@ const Auth = () => {
             </div>
 
             {/* Google Login */}
-            {/* Removed Google Login Button */}
-            {/* <Button
+            <Button
               type="button"
               variant="outline"
-              onClick={handleGoogleLogin}
+              onClick={() => { window.location.href = ${import.meta.env.VITE_BACKEND_URL}/api/auth/google; }}
               className="w-full h-12 bg-white hover:bg-slate-50 border-slate-200 text-slate-700 font-medium text-base shadow-sm transition-all"
             >
               <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
@@ -172,7 +188,7 @@ const Auth = () => {
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
               {isLogin ? "Sign in with Google" : "Sign up with Google"}
-            </Button> */}
+            </Button>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -212,6 +228,23 @@ const Auth = () => {
                       className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
                     />
                   </div>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="space-y-2 animate-in slide-in-from-top-2 fade-in duration-300">
+                  <Label htmlFor="avatar" className="text-slate-700 font-medium">Avatar</Label>
+                  <Input
+                    id="avatar"
+                    type="file"
+                    onChange={handleAvatarChange}
+                    className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
+                  />
+                  {avatarPreview && (
+                    <div className="mt-4 flex justify-center">
+                      <img src={avatarPreview} alt="Avatar Preview" className="w-24 h-24 rounded-full object-cover" />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -293,6 +326,17 @@ const Auth = () => {
                   />
                 </div>
               )}
+
+              <div className="flex justify-between items-center">
+                {isLogin && (
+                  <a 
+                    onClick={() => navigate('/forgot-password')}
+                    className="text-sm text-[#005f73] hover:text-[#004e5f] font-semibold hover:underline cursor-pointer transition-all"
+                  >
+                    Forgot Password?
+                  </a>
+                )}
+              </div>
 
               <Button
                 type="submit"
