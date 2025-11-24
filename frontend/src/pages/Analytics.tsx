@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
+import {
   Activity,
   TrendingUp,
   Wallet,
@@ -18,7 +27,6 @@ import { useToast } from '@/hooks/use-toast';
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState('This Year');
-  const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
   const [netWorth, setNetWorth] = useState(0);
   const [savingsRate, setSavingsRate] = useState(0);
   const [avgMonthlyCashflow, setAvgMonthlyCashflow] = useState(0);
@@ -120,25 +128,6 @@ const Analytics = () => {
 
   // Chart Dimensions & Scaling
   const chartHeight = 300;
-  const chartWidth = cashflowTrends.length * 120 + 50; 
-  const maxVal = Math.max(...cashflowTrends.flatMap(d => [d.income, d.expense]), 1); 
-
-  const scaleY = (val: number) => {
-    const plotHeight = chartHeight - 100; 
-    return (chartHeight - 50) - (val / maxVal) * plotHeight;
-  };
-  
-  const scaleX = (index: number) => index * 120 + 60;
-
-  const generatePath = (dataKey: 'income' | 'expense') => {
-    if (cashflowTrends.length === 0) return "";
-    return cashflowTrends.map((d, i) => 
-      `${i === 0 ? 'M' : 'L'} ${scaleX(i)} ${scaleY(d[dataKey])}`
-    ).join(' ');
-  };
-
-  const incomePath = generatePath('income');
-  const expensePath = generatePath('expense');
 
   return (
     <DashboardLayout>
@@ -229,63 +218,32 @@ const Analytics = () => {
                 </div>
             </div>
 
-            <div className="relative h-80 w-full overflow-x-auto overflow-y-hidden scrollbar-hide">
-                <div className="min-w-[800px] h-full relative">
-                    {/* Grid Lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between text-slate-300 text-xs font-medium z-0 pointer-events-none pb-8">
-                        {[maxVal, maxVal * 0.75, maxVal * 0.5, maxVal * 0.25, 0].map((val, i) => (
-                            <div key={i} className="border-b border-dashed border-slate-100 w-full h-0 relative">
-                                <span className="absolute -top-2.5 -left-10 text-slate-400 w-8 text-right">${(val/1000).toFixed(1)}k</span>
+            <div className="h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                        data={cashflowTrends}
+                        margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                        }}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <Tooltip cursor={false} content={({ active, payload, label }) => (
+                            <div className="bg-[#0a192f] p-3 rounded-lg shadow-xl text-white text-xs">
+                                <p className="uppercase font-bold text-slate-400 mb-1">{label} Stats</p>
+                                {payload && payload.map((entry, index) => (
+                                    <p key={index} style={{ color: entry.stroke }}>{entry.name}: ${entry.value?.toLocaleString()}</p>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-
-                    <svg className="absolute inset-0 w-full h-full z-10 overflow-visible" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
-                        {/* Income Layer */}
-                        {cashflowTrends.length > 0 && <path d={incomePath} fill="none" stroke="#005f73" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" className="drop-shadow-sm" />}
-
-                        {/* Expense Layer */}
-                        {cashflowTrends.length > 0 && <path d={expensePath} fill="none" stroke="#f43f5e" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" className="drop-shadow-sm" />}
-
-                        {/* Interactive Points */}
-                        {cashflowTrends.map((d, i) => (
-                            <g key={i} onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)} className="cursor-pointer">
-                                {/* Vertical Hover Line */}
-                                <line 
-                                    x1={scaleX(i)} y1="0" x2={scaleX(i)} y2={chartHeight} 
-                                    stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4 4" 
-                                    className={`transition-opacity duration-200 ${hoveredMonth === i ? 'opacity-100' : 'opacity-0'}`} 
-                                />
-                                
-                                {/* Invisible Hit Box */}
-                                <rect x={scaleX(i) - 40} y="0" width="80" height={chartHeight} fill="transparent" />
-
-                                {/* Visible Data Points */}
-                                <circle cx={scaleX(i)} cy={scaleY(d.income)} r={hoveredMonth === i ? 6 : 0} fill="white" stroke="#005f73" strokeWidth="3" className="transition-all duration-200 pointer-events-none" />
-                                <circle cx={scaleX(i)} cy={scaleY(d.expense)} r={hoveredMonth === i ? 6 : 0} fill="white" stroke="#f43f5e" strokeWidth="3" className="transition-all duration-200 pointer-events-none" />
-
-                                {/* Tooltip */}
-                                {hoveredMonth === i && (
-                                    <g transform={`translate(${scaleX(i) + 15}, ${Math.min(scaleY(d.income), scaleY(d.expense)) - 60})`}>
-                                        <rect x="0" y="0" width="120" height="75" rx="8" fill="#0a192f" className="shadow-xl" />
-                                        <text x="15" y="25" fill="#94a3b8" fontSize="10" fontWeight="bold" className="uppercase">{d.month} Stats</text>
-                                        <text x="15" y="42" fill="#2dd4bf" fontSize="11" fontWeight="bold">In: ${d.income.toLocaleString()}</text>
-                                        <text x="15" y="57" fill="#fb7185" fontSize="11" fontWeight="bold">Out: ${d.expense.toLocaleString()}</text>
-                                    </g>
-                                )}
-                            </g>
-                        ))}
-                    </svg>
-
-                    {/* X-Axis Labels */}
-                    <div className="absolute bottom-0 w-full flex text-xs font-bold text-slate-400">
-                        {cashflowTrends.map((d, i) => (
-                            <div key={i} className="absolute text-center w-20" style={{ left: scaleX(i) - 40 }}>
-                                <span className={`${hoveredMonth === i ? 'text-[#0a192f]' : ''} transition-colors`}>{d.month}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                        )} />
+                        <Line type="monotone" dataKey="income" stroke="#005f73" strokeWidth={3} dot={{ r: 5, fill: '#005f73', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 8 }} name="Income" />
+                        <Line type="monotone" dataKey="expense" stroke="#f43f5e" strokeWidth={3} dot={{ r: 5, fill: '#f43f5e', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 8 }} name="Expenses" />
+                    </LineChart>
+                </ResponsiveContainer>
             </div>
         </div>
 
