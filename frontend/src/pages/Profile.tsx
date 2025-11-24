@@ -21,6 +21,7 @@ const Profile = () => {
   const [location, setLocation] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [notifications, setNotifications] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   const { toast } = useToast();
   
@@ -80,6 +81,7 @@ const Profile = () => {
         title: "Success",
         description: "Profile updated successfully.",
       });
+      setIsEditing(false); // Exit editing mode after saving
     } catch (error) {
       console.error("Failed to update profile:", error);
       toast({
@@ -88,6 +90,10 @@ const Profile = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true); // Enter editing mode
   };
 
   const handleToggleNotifications = () => {
@@ -166,14 +172,11 @@ const Profile = () => {
               </div>
 
               <div className="flex gap-3 mb-2">
-                 <button className="px-6 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:border-[#005f73] hover:text-[#005f73] transition-colors">
-                    Preview
-                 </button>
                  <button 
                     className="px-6 py-2.5 rounded-xl bg-[#005f73] text-white font-bold shadow-lg shadow-[#005f73]/20 hover:bg-[#004e5f] transition-colors"
-                    onClick={handleSaveChanges}
+                    onClick={isEditing ? handleSaveChanges : handleEdit}
                  >
-                    Save Changes
+                    {isEditing ? 'Save Changes' : 'Edit Profile'}
                  </button>
               </div>
            </div>
@@ -181,7 +184,7 @@ const Profile = () => {
 
         {/* Navigation Tabs */}
         <div className="flex items-center gap-8 border-b border-slate-200 px-4">
-           {['Personal Info', 'Activity'].map((tab) => (
+           {[ 'Personal Info' ].map((tab) => (
               <button 
                  key={tab}
                  onClick={() => setActiveTab(tab.toLowerCase())}
@@ -212,6 +215,7 @@ const Profile = () => {
                           type="text" 
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
+                          disabled={!isEditing}
                           className="w-full px-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-bold border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
                        />
                     </div>
@@ -221,6 +225,7 @@ const Profile = () => {
                           type="text" 
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
+                          disabled={!isEditing}
                           className="w-full px-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-bold border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
                        />
                     </div>
@@ -232,6 +237,7 @@ const Profile = () => {
                              type="email" 
                              value={email}
                              onChange={(e) => setEmail(e.target.value)}
+                             disabled={!isEditing}
                              className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
                           />
                        </div>
@@ -244,6 +250,7 @@ const Profile = () => {
                              type="tel" 
                              value={phoneNumber}
                              onChange={(e) => setPhoneNumber(e.target.value)}
+                             disabled={!isEditing}
                              className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
                           />
                        </div>
@@ -261,6 +268,7 @@ const Profile = () => {
                                 type="text" 
                                 value={country}
                                 onChange={(e) => setCountry(e.target.value)}
+                                disabled={!isEditing}
                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
                              />
                           </div>
@@ -273,6 +281,7 @@ const Profile = () => {
                                 type="text" 
                                 value={cityState}
                                 onChange={(e) => setCityState(e.target.value)}
+                                disabled={!isEditing}
                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
                              />
                           </div>
@@ -292,6 +301,7 @@ const Profile = () => {
                             placeholder="https://linkedin.com/in/username" 
                             value={linkedinUrl}
                             onChange={(e) => setLinkedinUrl(e.target.value)}
+                            disabled={!isEditing}
                             className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-[#0a192f] font-medium border border-transparent focus:bg-white focus:border-[#005f73] outline-none transition-all" 
                           />
                        </div>
