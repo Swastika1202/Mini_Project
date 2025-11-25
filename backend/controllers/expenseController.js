@@ -36,17 +36,21 @@ const addExpense = async (req, res) => {
 
 const getExpenseSummary = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { period = 'weekly' } = req.query; // Default to weekly
+  const { period = 'weekly', searchTerm = '', filterCategory = 'All' } = req.query; // Default to weekly
+  console.log("Backend Received - Period:", period, "SearchTerm:", searchTerm, "FilterCategory:", filterCategory);
 
   let startDate = new Date();
   const endDate = new Date();
 
   switch (period) {
     case 'monthly':
-      startDate.setMonth(startDate.getMonth() - 1);
+      startDate.setDate(1); // Start of current month
+      startDate.setHours(0, 0, 0, 0);
       break;
     case 'yearly':
-      startDate.setFullYear(startDate.getFullYear() - 1);
+      startDate.setMonth(0); // January
+      startDate.setDate(1);  // 1st
+      startDate.setHours(0, 0, 0, 0);
       break;
     case 'weekly':
     default:
@@ -54,10 +58,20 @@ const getExpenseSummary = asyncHandler(async (req, res) => {
       break;
   }
 
-  const expenses = await Expense.find({
+  const query = {
     userId,
     date: { $gte: startDate, $lte: endDate },
-  }).sort({ date: -1 });
+  };
+
+  if (searchTerm) {
+    query.name = { $regex: searchTerm, $options: 'i' }; // Case-insensitive search by name
+  }
+
+  if (filterCategory !== 'All') {
+    query.category = filterCategory;
+  }
+
+  const expenses = await Expense.find(query).sort({ date: -1 });
 
   const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -84,17 +98,43 @@ const getExpenseSummary = asyncHandler(async (req, res) => {
 
   const topCategory = sortedCategories.length > 0 ? sortedCategories[0].category : 'N/A';
 
-  // Weekly Spending Trend (for last 7 days)
-  const weeklySpending = Array(7).fill(0);
-  expenses.forEach(expense => {
-    const expenseDate = new Date(expense.date);
-    const diffTime = Math.abs(endDate.getTime() - expenseDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Dynamic Spending Trend based on period
+  let spendingTrendData;
+  let numDataPoints;
 
-    if (diffDays >= 0 && diffDays < 7) {
-      weeklySpending[6 - diffDays] += expense.amount; // 0 is oldest, 6 is newest
-    }
-  });
+  if (period === 'weekly') {
+    numDataPoints = 7;
+    spendingTrendData = Array(numDataPoints).fill(0);
+    expenses.forEach(expense => {
+      const expenseDate = new Date(expense.date);
+      const diffTime = Math.abs(endDate.getTime() - expenseDate.getTime());
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays < numDataPoints) {
+        spendingTrendData[numDataPoints - 1 - diffDays] += expense.amount;
+      }
+    });
+  } else if (period === 'monthly') {
+    // Assuming a month has up to 31 days for simplicity, can be dynamic
+    numDataPoints = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate(); // Days in current month
+    spendingTrendData = Array(numDataPoints).fill(0);
+    expenses.forEach(expense => {
+      const expenseDate = new Date(expense.date);
+      if (expenseDate.getMonth() === endDate.getMonth() && expenseDate.getFullYear() === endDate.getFullYear()) {
+        const dayOfMonth = expenseDate.getDate();
+        spendingTrendData[dayOfMonth - 1] += expense.amount;
+      }
+    });
+  } else if (period === 'yearly') {
+    numDataPoints = 12; // 12 months in a year
+    spendingTrendData = Array(numDataPoints).fill(0);
+    expenses.forEach(expense => {
+      const expenseDate = new Date(expense.date);
+      if (expenseDate.getFullYear() === endDate.getFullYear()) {
+        const monthOfYear = expenseDate.getMonth(); // 0-indexed
+        spendingTrendData[monthOfYear] += expense.amount;
+      }
+    });
+  }
 
   // Budget
   const user = await User.findById(userId);
@@ -107,7 +147,7 @@ const getExpenseSummary = asyncHandler(async (req, res) => {
     totalSpent,
     avgDaily,
     topCategory,
-    weeklySpending,
+    spendingTrend: spendingTrendData, // Changed from weeklySpending
     budgetLeft,
     budgetUsed,
     budgetProgress,

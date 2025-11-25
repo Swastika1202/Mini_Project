@@ -43,17 +43,21 @@ const Expenses = () => {
   const [budgetProgress, setBudgetProgress] = useState(0);
   const [categories, setCategories] = useState([]); // For the category breakdown list
   const [period, setPeriod] = useState('weekly'); // Default period
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchExpenseSummary = async () => {
       try {
-        const response = await api.getExpenseSummary(period);
+        console.log("Frontend API Call - Period:", period, "SearchTerm:", searchTerm, "FilterCategory:", filterCategory);
+        const response = await api.getExpenseSummary(period, searchTerm, filterCategory); // Pass searchTerm and filterCategory
         const data = response.data;
         setTotalSpent(data.totalSpent);
         setAvgDaily(data.avgDaily);
         setTopCategory(data.topCategory);
-        setWeeklySpending(data.weeklySpending);
+        setWeeklySpending(data.spendingTrend); // Changed to spendingTrend
+        console.log("Spending Trend Data from Backend:", data.spendingTrend);
         setBudgetLeft(data.budgetLeft);
         setBudgetUsed(data.budgetUsed);
         setBudgetProgress(data.budgetProgress);
@@ -69,7 +73,7 @@ const Expenses = () => {
       }
     };
     fetchExpenseSummary();
-  }, [period, toast]);
+  }, [period, toast, searchTerm, filterCategory]);
 
   // Form State
   const [newExpense, setNewExpense] = useState({
@@ -125,12 +129,12 @@ const Expenses = () => {
       setIsAddModalOpen(false);
       setNewExpense({ name: '', cat: 'Shopping', amt: '', date: new Date().toISOString().split('T')[0] });
       // Refetch data after adding new expense
-      const response = await api.getExpenseSummary(period);
+      const response = await api.getExpenseSummary(period, searchTerm, filterCategory);
       const data = response.data;
       setTotalSpent(data.totalSpent);
       setAvgDaily(data.avgDaily);
       setTopCategory(data.topCategory);
-      setWeeklySpending(data.weeklySpending);
+      setWeeklySpending(data.spendingTrend); // Changed to spendingTrend
       setBudgetLeft(data.budgetLeft);
       setBudgetUsed(data.budgetUsed);
       setBudgetProgress(data.budgetProgress);
@@ -280,8 +284,10 @@ const Expenses = () => {
                     {weeklySpending.length > 0 && (
                        <path d={`M0,300 L0,${300 - (weeklySpending[0] / Math.max(...weeklySpending, 1)) * 250} ` +
                                 weeklySpending.map((val, index) => {
-                                  const x = (index / (weeklySpending.length - 1)) * 1000;
-                                  const y = 300 - (val / Math.max(...weeklySpending, 1)) * 250;
+                                  const x = (index / (weeklySpending.length - 1 || 1)) * 1000; // Handle single data point
+                                  const maxVal = Math.max(...weeklySpending, 1);
+                                  const y = 300 - (val / maxVal) * 250;
+                                  console.log(`Rendering point - Index: ${index}, Value: ${val}, MaxVal: ${maxVal}, Calculated X: ${x}, Calculated Y: ${y}`);
                                   return `L${x},${y}`;
                                 }).join(' ') + ` L1000,300 Z`}
                              fill="url(#expenseGradient)" />
@@ -292,8 +298,9 @@ const Expenses = () => {
                        <path 
                           d={`M0,${300 - (weeklySpending[0] / Math.max(...weeklySpending, 1)) * 250} ` +
                                weeklySpending.map((val, index) => {
-                                 const x = (index / (weeklySpending.length - 1)) * 1000;
-                                 const y = 300 - (val / Math.max(...weeklySpending, 1)) * 250;
+                                 const x = (index / (weeklySpending.length - 1 || 1)) * 1000; // Handle single data point
+                                 const maxVal = Math.max(...weeklySpending, 1);
+                                 const y = 300 - (val / maxVal) * 250;
                                  return `L${x},${y}`;
                                }).join(' ')}
                           fill="none" 
@@ -307,8 +314,9 @@ const Expenses = () => {
 
                     {/* Interactive Points */}
                     {weeklySpending.map((val, index) => {
-                       const x = (index / (weeklySpending.length - 1)) * 1000;
-                       const y = 300 - (val / Math.max(...weeklySpending, 1)) * 250;
+                       const x = (index / (weeklySpending.length - 1 || 1)) * 1000; // Handle single data point
+                       const maxVal = Math.max(...weeklySpending, 1);
+                       const y = 300 - (val / maxVal) * 250;
                        return (
                           <g key={index} onMouseEnter={() => setHoveredIndex(index)} onMouseLeave={() => setHoveredIndex(null)}>
                              {/* Larger hit area */}
@@ -395,11 +403,24 @@ const Expenses = () => {
               <div className="flex gap-2">
                  <div className="relative group">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-rose-600 transition-colors" size={16} />
-                    <input type="text" placeholder="Search expenses..." className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-600 w-full sm:w-64 transition-all" />
+                    <input 
+                      type="text" 
+                      placeholder="Search expenses..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-600 w-full sm:w-64 transition-all" 
+                    />
                  </div>
-                 <button className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-white transition-colors">
-                    <Filter size={18} />
-                 </button>
+                 <select
+                   value={filterCategory}
+                   onChange={(e) => setFilterCategory(e.target.value)}
+                   className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-white transition-colors text-sm appearance-none pr-8"
+                 >
+                   <option value="All">All Categories</option>
+                   {categories.map((cat, i) => (
+                     <option key={i} value={cat.category}>{cat.category}</option>
+                   ))}
+                 </select>
               </div>
            </div>
            

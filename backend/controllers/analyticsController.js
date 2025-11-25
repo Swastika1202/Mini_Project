@@ -16,7 +16,7 @@ const getAnalyticsSummary = asyncHandler(async (req, res) => {
       break;
     case 'This Year':
       startDate.setFullYear(endDate.getFullYear(), 0, 1); // Start of the current year
-      startDate.setHours(0, 0, 0, 0); 
+      startDate.setHours(0, 0, 0, 0);
       break;
     case 'All Time':
       // No start date filter, fetch all
@@ -64,7 +64,7 @@ const getAnalyticsSummary = asyncHandler(async (req, res) => {
     numberOfMonths = Math.ceil(Math.abs(endDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
     if (numberOfMonths === 0) numberOfMonths = 1; // Avoid division by zero
   }
-  
+
   const avgMonthlyCashflow = numberOfMonths > 0 ? (totalIncomeAmount - totalExpenseAmount) / numberOfMonths : 0;
 
   // Cashflow Trends (Income vs Expenses over time)
@@ -97,13 +97,18 @@ const getAnalyticsSummary = asyncHandler(async (req, res) => {
       expense: cashflowTrendsMap[key].expense,
     }));
 
-  // Asset Allocation (Mock Data for now)
-  const assetAllocation = [
-    { label: 'Stocks & ETFs', amount: 60000, percentage: 40 },
-    { label: 'Real Estate', amount: 37500, percentage: 25 },
-    { label: 'Crypto', amount: 30000, percentage: 20 },
-    { label: 'Cash', amount: 22500, percentage: 15 },
+  // Asset Allocation (Dynamic calculation)
+  const dynamicAssetAllocation = [
+    { label: 'Stocks & ETFs', percentage: 40 },
+    { label: 'Real Estate', percentage: 25 },
+    { label: 'Crypto', percentage: 20 },
+    { label: 'Cash', percentage: 15 },
   ];
+
+  const assetAllocation = dynamicAssetAllocation.map(asset => ({
+    ...asset,
+    amount: (netWorth * asset.percentage) / 100,
+  }));
 
   // Financial Goals (Mock Data for now)
   const financialGoals = [

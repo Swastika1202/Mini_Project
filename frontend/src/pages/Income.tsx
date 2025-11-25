@@ -70,11 +70,6 @@ const Income = () => {
     fetchIncomeSummary();
   }, [period, toast]);
 
-  // --- Derived Metrics ---
-  // const totalRevenue = transactions.reduce((acc, curr) => curr.status === 'Received' ? acc + curr.amt : acc, 0);
-  // const pendingRevenue = transactions.reduce((acc, curr) => curr.status === 'Pending' ? acc + curr.amt : acc, 0);
-  // const avgTransaction = totalRevenue / (transactions.filter(t => t.status === 'Received').length || 1);
-  
   // --- Handlers ---
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -148,18 +143,6 @@ const Income = () => {
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val);
 
   // --- Chart Data & Logic ---
-  // Coordinates for the curve points (scaled to 1000x300 viewBox)
-  const chartPoints = [
-    { x: 50, y: 200, val: 4200 },
-    { x: 180, y: 150, val: 5600 },
-    { x: 310, y: 220, val: 3800 },
-    { x: 440, y: 80, val: 8900 },
-    { x: 570, y: 130, val: 6500 },
-    { x: 700, y: 40, val: 9200 },
-    { x: 830, y: 90, val: 7400 },
-    { x: 950, y: 20, val: 10500 },
-  ];
-
   // Smooth Curve Path Command (Hardcoded smooth Bezier for demo visual)
   const curvePath = "M0,250 C100,200 150,150 180,150 C250,150 280,220 310,220 C360,220 400,100 440,80 C480,60 530,130 570,130 C630,130 660,40 700,40 C750,40 800,90 830,90 C880,90 920,20 1000,20";
   const areaPath = `${curvePath} L1000,350 L0,350 Z`;
@@ -259,11 +242,13 @@ const Income = () => {
                     </h3>
                     {hoveredWeek !== null && incomeGrowth.length > hoveredWeek ? (
                         <p className="text-sm text-[#005f73] font-medium animate-in fade-in">
-                            {period === 'weekly' ? `Week ${hoveredWeek + 1}` : period === 'monthly' ? `Day ${hoveredWeek + 1}` : `Month ${hoveredWeek + 1}`}: <span className="font-bold">{formatCurrency(incomeGrowth[hoveredWeek] || 0)}</span>
+                            {/* Swapped: Weekly shows "Day X", Monthly shows "Week X" */}
+                            {period === 'weekly' ? `Day ${hoveredWeek + 1}` : period === 'monthly' ? `Week ${hoveredWeek + 1}` : `Month ${hoveredWeek + 1}`}: <span className="font-bold">{formatCurrency(incomeGrowth[hoveredWeek] || 0)}</span>
                         </p>
                     ) : (
                         <p className="text-sm text-slate-500">{
-                          period === 'weekly' ? 'Weekly breakdown' : period === 'monthly' ? 'Daily breakdown' : 'Monthly breakdown'
+                          // Swapped descriptive text
+                          period === 'weekly' ? 'Daily breakdown' : period === 'monthly' ? 'Weekly breakdown' : 'Monthly breakdown'
                         }</p>
                     )}
                   </div>
@@ -347,8 +332,9 @@ const Income = () => {
 
                   {/* X Axis Labels */}
                   <div className="absolute bottom-0 w-full flex justify-between px-2 text-xs font-bold text-slate-400 mt-2">
-                     {period === 'weekly' && (Array.from({ length: incomeGrowth.length }).map((_, i) => <span key={i}>W{i + 1}</span>))}
-                     {period === 'monthly' && (Array.from({ length: incomeGrowth.length }).map((_, i) => <span key={i}>Day {i + 1}</span>))}
+                     {/* Swapped Logic: Weekly -> Day X, Monthly -> W X */}
+                     {period === 'weekly' && (Array.from({ length: incomeGrowth.length }).map((_, i) => <span key={i}>Day {i + 1}</span>))}
+                     {period === 'monthly' && (Array.from({ length: incomeGrowth.length }).map((_, i) => <span key={i}>W{i + 1}</span>))}
                      {period === 'yearly' && (Array.from({ length: incomeGrowth.length }).map((_, i) => <span key={i}>Month {i + 1}</span>))}
                   </div>
                </div>
