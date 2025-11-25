@@ -145,7 +145,7 @@ const Income = () => {
   };
 
   const formatCurrency = (val: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val);
 
   // --- Chart Data & Logic ---
   // Coordinates for the curve points (scaled to 1000x300 viewBox)
@@ -381,7 +381,7 @@ const Income = () => {
                   <p className="text-[#005f73] text-sm font-medium flex items-center gap-2">
                      <TrendingUp size={16} /> Projection
                   </p>
-                  <p className="text-xs text-[#005f73]/80 mt-1">You are on track to exceed your monthly income goal by <span className="font-bold">$1,200</span>.</p>
+                  <p className="text-xs text-[#005f73]/80 mt-1">You are on track to exceed your monthly income goal by <span className="font-bold">₹1,200</span>.</p>
                </div>
            </div>
         </div>
@@ -481,9 +481,9 @@ const Income = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Amount ($)</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Amount (₹)</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
                                     <input 
                                         required
                                         name="amount"

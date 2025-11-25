@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -18,11 +18,24 @@ import {
   TrendingUp, // Added for Income
   CreditCard,  // Added for Expenses
   Eye,         // Added for showing balance
-  EyeOff       // Added for hiding balance
+  EyeOff,      // Added for hiding balance
+  Upload,      // Added for file upload
+  Loader2,     // Added for loading state
+  Mic          // Added for microphone input
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area'; // Added for ScrollArea
+import api from '../../utils/api';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+}
+
+interface Message {
+  id: number;
+  text: string;
+  sender: 'user' | 'bot';
+  timestamp: string;
+  imageUrl?: string; // Optional: URL for uploaded image
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
@@ -30,9 +43,137 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showBalance, setShowBalance] = useState(true); // New state for balance visibility
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [balance, setBalance] = useState(0);
+  const [fetchedUserName, setFetchedUserName] = useState('User'); // New state for fetched user name
+  const [messages, setMessages] = useState<Message[]>(
+    [{ id: 1, text: `Hello ${fetchedUserName}! 👋 How can I help you today?`, sender: "bot", timestamp: new Date().toLocaleTimeString() }]
+  ); // Chat messages state
+  const [inputMessage, setInputMessage] = useState<string>(''); // Input message state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // Selected file state
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Loading state for chatbot response
+  const [isListening, setIsListening] = useState(false); // State for speech recognition
+  const messagesEndRef = useRef<HTMLDivElement>(null); // Ref for scrolling chat to bottom
+
+  const recognition = useRef<SpeechRecognition | null>(null);
+
+  useEffect(() => {
+    // Initialize SpeechRecognition
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      const speechRecognition = new SpeechRecognition();
+      speechRecognition.continuous = false;
+      speechRecognition.interimResults = false;
+      speechRecognition.lang = 'en-US';
+
+      speechRecognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript;
+        setInputMessage(transcript);
+        setIsListening(false);
+      };
+
+      speechRecognition.onend = () => {
+        setIsListening(false);
+      };
+
+      speechRecognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.current = speechRecognition;
+    } else {
+      console.warn("Speech Recognition API not supported in this browser.");
+    }
+  }, []);
   
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profileResponse = await api.getProfile();
+        setAvatarUrl(profileResponse.data.avatar || '');
+        const userFirstName = profileResponse.data.firstName || '';
+        const userLastName = profileResponse.data.lastName || '';
+        setFetchedUserName(`${userFirstName} ${userLastName}`.trim() || 'User'); // Set fetched user full name
+
+        const dashboardResponse = await api.getDashboardSummary('Monthly'); // Fetch monthly summary for balance
+        setBalance(dashboardResponse.data.netSavings);
+      } catch (error) {
+        console.error("Failed to fetch data in DashboardLayout:", error);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() && !selectedFile) return;
+
+    setIsLoading(true);
+    const newMessage: Message = {
+      id: messages.length + 1,
+      text: inputMessage,
+      sender: 'user',
+      timestamp: new Date().toLocaleTimeString(),
+      ...(selectedFile && { imageUrl: URL.createObjectURL(selectedFile) }),
+    };
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+    try {
+      const formData = new FormData();
+      formData.append('prompt', inputMessage);
+      formData.append('userName', fetchedUserName); // Use fetchedUserName
+      formData.append('language', 'en'); // Or dynamically set based on user preference
+      if (selectedFile) {
+        formData.append('file', selectedFile);
+      }
+
+      const token = localStorage.getItem('token'); // Get token from localStorage
+
+      const response = await fetch('http://localhost:5000/api/chatbot', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const botResponse: Message = {
+        id: messages.length + 2,
+        text: data.response,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setMessages((prevMessages) => [...prevMessages, botResponse]);
+    } catch (error) {
+      console.error('Error sending message to chatbot:', error);
+      // Removed the error message from being displayed in the chat
+    } finally {
+      setInputMessage('');
+      setSelectedFile(null);
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSelectedFile(event.target.files[0]);
+    } else {
+      setSelectedFile(null);
+    }
+  };
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Overview', path: '/dashboard' },
@@ -48,6 +189,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/auth');
+  };
+
+  const toggleListening = () => {
+    if (recognition.current) {
+      if (isListening) {
+        recognition.current.stop();
+      } else {
+        recognition.current.start();
+        setIsListening(true);
+      }
+    }
   };
 
   return (
@@ -73,10 +225,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className={`p-6 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
             <div className="w-10 h-10 rounded-xl bg-[#005f73] flex items-center justify-center text-white shadow-lg shadow-cyan-900/20 shrink-0">
-              <span className="font-bold text-xl">P</span>
+              <span className="font-bold text-xl">Y</span>
             </div>
             {!isCollapsed && (
-              <span className="font-bold text-xl tracking-tight text-[#0a192f] animate-in fade-in duration-300">Phantom</span>
+              <span className="font-bold text-xl tracking-tight text-[#0a192f] animate-in fade-in duration-300">YouthWallet</span>
             )}
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-400">
@@ -156,7 +308,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-full px-4 py-2 gap-2 text-sm font-medium text-[#0a192f]">
               <span className="text-slate-500">Balance:</span>
               {showBalance ? (
-                <span className="font-bold">$12,450.00</span>
+                <span className="font-bold">₹{balance.toFixed(2)}</span>
               ) : (
                 <span className="font-bold">••••••</span>
               )}
@@ -171,7 +323,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </button>
             
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#005f73] to-[#0a9396] p-[2px] cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/profile')}>
-               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" alt="User" className="w-full h-full rounded-full bg-white" />
+               <img src={avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"} alt="User" className="w-full h-full rounded-full bg-white" />
             </div>
           </div>
         </header>
@@ -188,20 +340,90 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                <div className="bg-[#005f73] p-4 flex items-center justify-between text-white">
                   <div className="flex items-center gap-3">
                      <div className="p-1.5 bg-white/20 rounded-lg"><Bot size={20} /></div>
-                     <div><h4 className="font-bold text-sm">Phantom Assistant</h4><p className="text-[10px] opacity-80 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span> Online</p></div>
+                     <div><h4 className="font-bold text-sm">YouthWallet Assistant</h4><p className="text-[10px] opacity-80 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span> Online</p></div>
                   </div>
                   <button onClick={() => setIsChatOpen(false)} className="hover:bg-white/10 p-1 rounded transition-colors"><X size={18} /></button>
                </div>
                <div className="flex-1 p-4 bg-slate-50 overflow-y-auto space-y-4">
-                  <div className="flex gap-3">
-                     <div className="w-8 h-8 rounded-full bg-[#005f73] flex items-center justify-center text-white shrink-0"><Bot size={14} /></div>
-                     <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-sm text-slate-600 max-w-[85%]">Hello Alex! 👋 How can I help you today?</div>
-                  </div>
+               <ScrollArea className="h-full pr-4">
+                  {messages.map((message) => (
+                     <div
+                        key={message.id}
+                        className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-2`}
+                     >
+                        <div
+                           className={`max-w-[85%] rounded-lg p-3 ${message.sender === 'user'
+                              ? 'bg-[#e0f2f1] text-[#0a192f]'
+                              : 'bg-white text-slate-600'
+                           }`}
+                        >
+                           {message.imageUrl ? (
+                              <img src={message.imageUrl} alt="Uploaded" className="max-w-xs h-auto rounded-lg" />
+                           ) : (
+                              <p className="text-sm">{message.text}</p>
+                           )}
+                           <span className="text-xs opacity-50 block text-right mt-1">
+                              {message.timestamp}
+                           </span>
+                        </div>
+                     </div>
+                  ))}
+                  {isLoading && (
+                     <div className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#005f73] flex items-center justify-center text-white shrink-0"><Bot size={14} /></div>
+                        <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-sm text-slate-600 max-w-[85%] flex items-center gap-1">
+                           <span>Bot is typing</span>
+                           <span className="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+                        </div>
+                     </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                  </ScrollArea>
                </div>
                <div className="p-4 bg-white border-t border-slate-100">
+                  {selectedFile && (
+                     <div className="w-full text-sm text-muted-foreground mb-2 flex items-center justify-between">
+                        <span>Selected file: {selectedFile.name}</span>
+                        <button
+                           onClick={() => setSelectedFile(null)}
+                           className="text-red-500 hover:text-red-700 ml-2"
+                        >
+                           <X size={16} />
+                        </button>
+                     </div>
+                  )}
                   <div className="flex gap-2">
-                     <input type="text" placeholder="Ask anything..." className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#005f73]" />
-                     <button className="bg-[#005f73] text-white p-2.5 rounded-xl"><Send size={18} /></button>
+                     <div className="relative flex-1">
+                        <input
+                           type="text"
+                           placeholder="Ask anything..."
+                           className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-12 py-2 text-sm focus:outline-none focus:border-[#005f73] w-full"
+                           value={inputMessage}
+                           onChange={(e) => setInputMessage(e.target.value)}
+                           onKeyPress={(e) => {
+                              if (e.key === 'Enter' && !isLoading) {
+                                 handleSendMessage();
+                              }
+                           }}
+                           disabled={isLoading || isListening}
+                        />
+                        <button 
+                           onClick={toggleListening}
+                           disabled={isLoading}
+                           className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full flex items-center justify-center transition-colors
+                              ${isListening ? 'bg-red-500 text-white' : 'text-slate-500 hover:text-[#005f73]'}
+                           `}
+                        >
+                           <Mic size={18} className={isListening ? 'animate-pulse' : ''} />
+                        </button>
+                     </div>
+                     <label htmlFor="file-upload" className="cursor-pointer flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-500 hover:text-[#005f73] transition-colors">
+                        <input id="file-upload" type="file" className="hidden" onChange={handleFileChange} />
+                        <Upload size={18} />
+                     </label>
+                     <button onClick={handleSendMessage} disabled={isLoading} className="bg-[#005f73] text-white p-2.5 rounded-xl flex items-center justify-center">
+                        {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                     </button>
                   </div>
                </div>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   User,
@@ -9,15 +9,46 @@ import {
   Camera,
   Save,
 } from 'lucide-react';
+import api from '../utils/api'; // Import the API utility
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [location, setLocation] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
     weeklyReport: true,
     securityAlerts: true
   });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.getProfile();
+        const userData = response.data;
+        setFirstName(userData.firstName || '');
+        setLastName(userData.lastName || '');
+        setEmail(userData.email || '');
+        setPhoneNumber(userData.phoneNumber || '');
+        setLocation(userData.location || '');
+        setAvatarUrl(userData.avatar || '');
+        setNotifications({
+          email: userData.notifications.email || true,
+          push: userData.notifications.push || false,
+          weeklyReport: userData.notifications.weeklyReport || true,
+          securityAlerts: userData.notifications.securityAlerts || true,
+        });
+      } catch (error) {
+        console.error("Failed to fetch profile in settings:", error);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const tabs = [
     { id: 'profile', label: 'Edit Profile', icon: User },
@@ -76,15 +107,15 @@ const Settings = () => {
                 <div className="flex items-center gap-6 mb-8">
                   <div className="relative group cursor-pointer">
                     <div className="w-24 h-24 rounded-full bg-slate-100 border-4 border-white shadow-lg overflow-hidden">
-                      <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" alt="Profile" className="w-full h-full object-cover" />
+                      <img src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName + lastName}`} alt="Profile" className="w-full h-full object-cover" />
                     </div>
                     <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Camera className="text-white" size={24} />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-[#0a192f]">Alex Morgan</h3>
-                    <p className="text-sm text-slate-500">alex.morgan@example.com</p>
+                    <h3 className="font-bold text-lg text-[#0a192f]">{firstName} {lastName}</h3>
+                    <p className="text-sm text-slate-500">{email}</p>
                     <button className="mt-2 text-sm font-bold text-[#005f73] hover:underline">Change Avatar</button>
                   </div>
                 </div>
@@ -92,19 +123,19 @@ const Settings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Full Name</label>
-                    <input type="text" defaultValue="Alex Morgan" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f]" />
+                    <input type="text" value={`${firstName} ${lastName}`} onChange={(e) => { const [first, ...last] = e.target.value.split(' '); setFirstName(first); setLastName(last.join(' ')); }} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f]" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Email Address</label>
-                    <input type="email" defaultValue="alex.morgan@example.com" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f]" />
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f]" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Phone Number</label>
-                    <input type="tel" defaultValue="+1 (555) 123-4567" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f]" />
+                    <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f]" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Location</label>
-                    <input type="text" defaultValue="New York, USA" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f]" />
+                    <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f]" />
                   </div>
                 </div>
               </div>
@@ -119,9 +150,6 @@ const Settings = () => {
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Currency</label>
                     <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#005f73] transition-colors text-sm font-medium text-[#0a192f] appearance-none">
-                      <option>USD ($)</option>
-                      <option>EUR (€)</option>
-                      <option>GBP (£)</option>
                       <option>INR (₹)</option>
                     </select>
                   </div>
@@ -164,7 +192,7 @@ const Settings = () => {
                   {[
                     { key: 'email', title: 'Email Notifications', desc: 'Receive daily summaries and critical alerts via email.' },
                     { key: 'push', title: 'Push Notifications', desc: 'Get real-time updates on your mobile device.' },
-                    { key: 'weeklyReport', title: 'Weekly Reports', desc: 'A detailed breakdown of your weekly finances.' },
+                    { key: 'weeklyReport', title: 'Weekly Reports', desc: 'A detailed breakdown of your weekly YouthWallet activity.' },
                     { key: 'securityAlerts', title: 'Security Alerts', desc: 'Immediate notifications for suspicious login attempts.' },
                   ].map((item) => (
                     <div key={item.key} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all">

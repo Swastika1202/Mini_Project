@@ -147,7 +147,7 @@ const Expenses = () => {
   };
 
   const formatCurrency = (val: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val);
 
   return (
     <DashboardLayout>
@@ -493,9 +493,9 @@ const Expenses = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Amount ($)</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Amount (₹)</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
                                     <input 
                                         required
                                         name="amt"

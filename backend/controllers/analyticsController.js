@@ -71,23 +71,28 @@ const getAnalyticsSummary = asyncHandler(async (req, res) => {
   // This requires a more complex aggregation, for now, let's group by month
   const cashflowTrendsMap = {};
 
-  [...incomes, ...expenses].forEach(item => {
+  incomes.forEach(item => {
     const date = new Date(item.date);
     const monthYear = `${date.getFullYear()}-${date.getMonth()}`;
     if (!cashflowTrendsMap[monthYear]) {
       cashflowTrendsMap[monthYear] = { income: 0, expense: 0 };
     }
-    if (item.title) { // Assuming title exists for income
-      cashflowTrendsMap[monthYear].income += item.amount;
-    } else if (item.name) { // Assuming name exists for expense
-      cashflowTrendsMap[monthYear].expense += item.amount;
+    cashflowTrendsMap[monthYear].income += item.amount;
+  });
+
+  expenses.forEach(item => {
+    const date = new Date(item.date);
+    const monthYear = `${date.getFullYear()}-${date.getMonth()}`;
+    if (!cashflowTrendsMap[monthYear]) {
+      cashflowTrendsMap[monthYear] = { income: 0, expense: 0 };
     }
+    cashflowTrendsMap[monthYear].expense += item.amount;
   });
 
   const cashflowTrends = Object.keys(cashflowTrendsMap)
-    .sort((a, b) => new Date(a) - new Date(b))
+    .sort((a, b) => new Date(a.split('-')[0], a.split('-')[1]) - new Date(b.split('-')[0], b.split('-')[1]))
     .map(key => ({
-      month: new Date(key).toLocaleString('default', { month: 'short' }),
+      month: new Date(key.split('-')[0], key.split('-')[1]).toLocaleString('default', { month: 'short' }),
       income: cashflowTrendsMap[key].income,
       expense: cashflowTrendsMap[key].expense,
     }));

@@ -47,11 +47,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        finance: {
-          blue: "hsl(var(--finance-blue))",
-          teal: "hsl(var(--finance-teal))",
-          purple: "hsl(var(--finance-purple))",
-          glow: "hsl(var(--finance-glow))",
+        youthwallet: {
+          blue: "hsl(var(--youthwallet-blue))",
+          teal: "hsl(var(--youthwallet-teal))",
+          purple: "hsl(var(--youthwallet-purple))",
+          glow: "hsl(var(--youthwallet-glow))",
         },
       },
       backgroundImage: {

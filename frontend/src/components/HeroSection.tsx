@@ -29,7 +29,7 @@ const HeroSection = () => {
             </h1>
 
             <p className="mt-4 text-lg text-foreground/80 max-w-2xl leading-relaxed">
-              Phantom Finance is your trusted partner in navigating the complexities of the financial world.
+              YouthWallet is your trusted partner in navigating the complexities of the financial world.
               We provide personalized advice and innovative solutions to help you achieve your financial goals.
             </p>
             <div className="mt-8">

@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
+const cloudinary = require('../config/cloudinary'); // Import cloudinary config
 
 // @desc    Get user profile
 // @route   GET /api/profile
@@ -52,5 +53,37 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { getProfile, updateProfile };
+// @desc    Upload user avatar
+// @route   PUT /api/profile/avatar
+// @access  Private
+const uploadAvatar = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+
+  if (user) {
+    if (req.file) {
+      const base64Image = req.file.buffer.toString('base64');
+      const dataUri = `data:${req.file.mimetype};base64,${base64Image}`;
+      const result = await cloudinary.uploader.upload(dataUri, {
+        folder: 'avatars',
+        format: 'png',
+      });
+      user.avatar = result.secure_url;
+    } else {
+      res.status(400);
+      throw new Error('No avatar file provided');
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      avatarUrl: updatedUser.avatar,
+    });
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+module.exports = { getProfile, updateProfile, uploadAvatar };
 

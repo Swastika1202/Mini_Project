@@ -25,7 +25,7 @@ const features = [
   },
   {
     icon: BookOpen,
-    title: "Financial Tips for Students",
+    title: "YouthWallet Tips for Students",
     description: "Learn money management with curated content designed for young adults.",
     color: "text-finance-blue",
     bgColor: "bg-finance-blue/10",
@@ -33,7 +33,7 @@ const features = [
   {
     icon: Zap,
     title: "Beginner-Friendly Tools",
-    description: "Simple, intuitive interface that makes finance accessible to everyone.",
+    description: "Simple, intuitive interface that makes YouthWallet accessible to everyone.",
     color: "text-finance-teal",
     bgColor: "bg-finance-teal/10",
   },

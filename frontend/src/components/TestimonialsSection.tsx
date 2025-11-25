@@ -7,7 +7,7 @@ const testimonials = [
     role: "College Student",
     image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
     rating: 5,
-    text: "Phantom Finance helped me save $2000 in just 6 months! The budget tracking is so easy to use, and I finally feel in control of my money.",
+    text: "YouthWallet helped me save $2000 in just 6 months! The budget tracking is so easy to use, and I finally feel in control of my money.",
   },
   {
     name: "Michael Chen",
@@ -21,7 +21,7 @@ const testimonials = [
     role: "Part-time Worker",
     image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
     rating: 5,
-    text: "I love how Phantom Finance breaks down complex financial concepts into simple steps. It's like having a financial advisor in my pocket!",
+    text: "I love how YouthWallet breaks down complex financial concepts into simple steps. It\'s like having a financial advisor in my pocket!",
   },
 ];
 

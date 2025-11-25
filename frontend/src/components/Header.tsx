@@ -22,9 +22,9 @@ const Header = () => {
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-              <span className="text-white font-bold text-xl">P</span>
+              <span className="text-white font-bold text-xl">Y</span>
             </div>
-            <span className="text-xl font-bold gradient-text">Phantom Finance</span>
+            <span className="text-xl font-bold gradient-text">YouthWallet</span>
           </div>
 
           {/* Desktop Navigation */}

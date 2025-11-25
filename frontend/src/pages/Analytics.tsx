@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  LineChart,
-  Line,
+  BarChart, // Changed to BarChart
+  Bar,      // Changed to Bar
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Defs,
+  LinearGradient,
+  Stop
 } from 'recharts';
 import {
   Activity,
@@ -20,7 +23,8 @@ import {
   Home,
   Plus,
   X,
-  Check
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import api from '../utils/api';
 import { useToast } from '@/hooks/use-toast';
@@ -30,9 +34,9 @@ const Analytics = () => {
   const [netWorth, setNetWorth] = useState(0);
   const [savingsRate, setSavingsRate] = useState(0);
   const [avgMonthlyCashflow, setAvgMonthlyCashflow] = useState(0);
-  const [cashflowTrends, setCashflowTrends] = useState<any[]>([]);
-  const [assetAllocation, setAssetAllocation] = useState<any[]>([]);
-  const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>([]);
+  const [cashflowTrends, setCashflowTrends] = useState([]);
+  const [assetAllocation, setAssetAllocation] = useState([]);
+  const [financialGoals, setFinancialGoals] = useState([]);
   const [isAddGoalModalOpen, setIsAddGoalModalOpen] = useState(false);
   const [newGoal, setNewGoal] = useState({
     name: '',
@@ -41,17 +45,7 @@ const Analytics = () => {
   });
   const { toast } = useToast();
 
-  interface FinancialGoal {
-    _id: string;
-    userId?: string;
-    name: string;
-    targetAmount: number;
-    currentAmount: number;
-    icon: string;
-    createdAt?: string;
-  }
-
-  const getGoalIconColor = (iconName: string) => {
+  const getGoalIconColor = (iconName) => {
     switch (iconName) {
       case 'Wallet': return 'text-emerald-600 bg-emerald-50';
       case 'Car': return 'text-blue-600 bg-blue-50';
@@ -61,7 +55,7 @@ const Analytics = () => {
     }
   };
 
-  // --- Backend Integration (Preserved) ---
+  // --- Backend Integration ---
   useEffect(() => {
     const fetchAnalyticsSummary = async () => {
       try {
@@ -116,7 +110,7 @@ const Analytics = () => {
       });
       setIsAddGoalModalOpen(false);
       setNewGoal({ name: '', targetAmount: '', icon: 'Wallet' });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to add financial goal:", error);
       toast({
         title: "Error",
@@ -126,8 +120,48 @@ const Analytics = () => {
     }
   };
 
-  // Chart Dimensions & Scaling
-  const chartHeight = 300;
+  // --- Custom Modern Tooltip ---
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const income = payload.find(p => p.dataKey === 'income')?.value || 0;
+      const expense = payload.find(p => p.dataKey === 'expense')?.value || 0;
+      const net = income - expense;
+
+      return (
+        <div className="bg-[#0a192f]/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-slate-700 min-w-[200px] animate-in fade-in zoom-in-95 duration-200">
+          <p className="text-slate-400 text-xs font-bold uppercase mb-3 tracking-wider">{label}</p>
+          
+          <div className="space-y-3">
+            <div className="flex justify-between items-center group">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-8 rounded-full bg-emerald-400"></div>
+                <span className="text-slate-300 text-sm">Income</span>
+              </div>
+              <span className="text-white font-bold text-lg">{income.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+            </div>
+
+            <div className="flex justify-between items-center group">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-8 rounded-full bg-rose-400"></div>
+                <span className="text-slate-300 text-sm">Expense</span>
+              </div>
+              <span className="text-white font-bold text-lg">{expense.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+            </div>
+            
+            <div className="h-px bg-slate-700 my-1"></div>
+
+            <div className="flex justify-between items-center pt-1">
+               <span className="text-slate-400 text-xs font-medium">Net Difference</span>
+               <span className={`font-bold text-sm ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                 {net >= 0 ? '+' : ''}{net.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+               </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <DashboardLayout>
@@ -164,11 +198,13 @@ const Analytics = () => {
                   <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                      <Wallet size={24} />
                   </div>
-                  <span className="bg-indigo-50 text-indigo-600 text-xs font-bold px-2 py-1 rounded-lg">+12.5%</span>
+                  <span className="bg-indigo-50 text-indigo-600 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                    <TrendingUp size={12} /> +12.5%
+                  </span>
                </div>
                <div>
                   <p className="text-slate-500 font-medium text-sm mb-1">Net Worth</p>
-                  <h3 className="text-3xl font-bold text-[#0a192f]">${netWorth.toLocaleString()}</h3>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">{netWorth.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</h3>
                </div>
            </div>
 
@@ -228,53 +264,89 @@ const Analytics = () => {
                </div>
                <div>
                   <p className="text-slate-500 font-medium text-sm mb-1">Avg. Monthly Cashflow</p>
-                  <h3 className="text-3xl font-bold text-[#0a192f]">${Number(avgMonthlyCashflow).toLocaleString()}</h3>
+                  <h3 className="text-3xl font-bold text-[#0a192f]">{Number(avgMonthlyCashflow).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</h3>
                </div>
            </div>
         </div>
 
-        {/* Main Chart Section */}
+        {/* --- MAIN CHART SECTION (UPDATED: Modern Bar Chart) --- */}
         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 relative">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                 <div>
-                    <h3 className="font-bold text-xl text-[#0a192f]">Cashflow Trends</h3>
-                    <p className="text-sm text-slate-500 mt-1">Income vs Expenses over time</p>
+                    <h3 className="font-bold text-xl text-[#0a192f] flex items-center gap-2">
+                        Cashflow Trends
+                    </h3>
+                    <p className="text-sm text-slate-500 mt-1">Comparitive Income & Expense Analysis</p>
                 </div>
+                
+                {/* Custom Legend */}
                 <div className="flex gap-4 text-sm font-medium">
-                    <div className="flex items-center gap-2 text-slate-600">
-                        <div className="w-3 h-3 rounded-full bg-[#005f73]"></div> Income
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-800">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Income
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                        <div className="w-3 h-3 rounded-full bg-rose-500"></div> Expenses
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-800">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Expense
                     </div>
                 </div>
             </div>
 
-            <div className="h-80 w-full">
+            <div className="h-[350px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
+                    <BarChart
                         data={cashflowTrends}
-                        margin={{
-                            top: 5,
-                            right: 30,
-                            left: 20,
-                            bottom: 5,
-                        }}
+                        margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
+                        barGap={8} // Space between Income and Expense bars
                     >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                        <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} tick={{ fill: '#64748b', fontSize: 12 }} />
-                        <Tooltip cursor={false} content={({ active, payload, label }) => (
-                            <div className="bg-[#0a192f] p-3 rounded-lg shadow-xl text-white text-xs">
-                                <p className="uppercase font-bold text-slate-400 mb-1">{label} Stats</p>
-                                {payload && payload.map((entry, index) => (
-                                    <p key={index} style={{ color: entry.stroke }}>{entry.name}: ${entry.value?.toLocaleString()}</p>
-                                ))}
-                            </div>
-                        )} />
-                        <Line type="monotone" dataKey="income" stroke="#005f73" strokeWidth={3} dot={{ r: 5, fill: '#005f73', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 8 }} name="Income" />
-                        <Line type="monotone" dataKey="expense" stroke="#f43f5e" strokeWidth={3} dot={{ r: 5, fill: '#f43f5e', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 8 }} name="Expenses" />
-                    </LineChart>
+                        {/* Gradient Definitions */}
+                        <defs>
+                            <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#10b981" />
+                                <stop offset="100%" stopColor="#059669" />
+                            </linearGradient>
+                            <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#f43f5e" />
+                                <stop offset="100%" stopColor="#e11d48" />
+                            </linearGradient>
+                        </defs>
+
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        
+                        <XAxis 
+                            dataKey="month" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} 
+                            dy={15}
+                        />
+                        
+                        <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`} 
+                            tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} 
+                        />
+                        
+                        <Tooltip 
+                            content={<CustomTooltip />} 
+                            cursor={{ fill: '#f8fafc', opacity: 0.5 }} // Subtle background highlight on hover
+                        />
+                        
+                        <Bar 
+                            dataKey="income" 
+                            fill="url(#incomeGradient)" 
+                            radius={[6, 6, 0, 0]} // Rounded top corners
+                            barSize={16} // Sleek thin bars
+                            animationDuration={1500}
+                        />
+                        
+                        <Bar 
+                            dataKey="expense" 
+                            fill="url(#expenseGradient)" 
+                            radius={[6, 6, 0, 0]} // Rounded top corners
+                            barSize={16} // Sleek thin bars
+                            animationDuration={1500}
+                        />
+                    </BarChart>
                 </ResponsiveContainer>
             </div>
         </div>
@@ -303,7 +375,7 @@ const Analytics = () => {
                         </div>
                         <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
                             <span className="text-sm text-slate-400 font-medium uppercase">Total</span>
-                            <span className="text-2xl font-bold text-[#0a192f]">${netWorth.toLocaleString()}</span>
+                            <span className="text-2xl font-bold text-[#0a192f]">{netWorth.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                         </div>
                     </div>
 
@@ -353,7 +425,7 @@ const Analytics = () => {
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-[#0a192f]">{goal.name}</p>
-                                            <p className="text-xs text-slate-400">${goal.currentAmount.toLocaleString()} / ${goal.targetAmount.toLocaleString()}</p>
+                                            <p className="text-xs text-slate-400">{goal.currentAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })} / {goal.targetAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                                         </div>
                                     </div>
                                     <span className="text-xs font-bold text-slate-600">{percent.toFixed(0)}%</span>
@@ -409,7 +481,7 @@ const Analytics = () => {
                    </div>
 
                    <div className="space-y-1.5">
-                      <label className="text-sm font-semibold text-slate-700">Target Amount ($)</label>
+                      <label className="text-sm font-semibold text-slate-700">Target Amount (INR)</label>
                       <input 
                          type="number" 
                          value={newGoal.targetAmount}

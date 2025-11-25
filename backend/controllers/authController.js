@@ -32,7 +32,7 @@ const registerUser = async (req, res) => {
     // Handle avatar upload if file is present
     if (req.file) {
       const base64Image = req.file.buffer.toString('base64');
-      const dataUri = data:${req.file.mimetype};base64,${base64Image};
+      const dataUri = `data:${req.file.mimetype};base64,${base64Image}`;
       const result = await cloudinary.uploader.upload(dataUri, {
         folder: 'avatars',
         format: 'png',
@@ -117,7 +117,7 @@ const forgotPassword = async (req, res) => {
 
     await user.save({ validateBeforeSave: false });
 
-    const resetUrl = ${process.env.FRONTEND_URL}/resetpassword/${resetToken};
+    const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${resetToken}`;
 
     const message = `
       <h1>You have requested a password reset</h1>

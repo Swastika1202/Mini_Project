@@ -12,8 +12,9 @@ const cors = require('cors');
 const passport = require('passport');
 const session = require('express-session');
 require('./config/passport'); // Import passport configuration
-const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const financialGoalRoutes = require('./routes/financialGoalRoutes');
+const chatbotRoutes = require('./routes/chatbotRoutes'); // Import chatbot routes
+const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // Connect to database
 connectDB();
@@ -44,9 +45,10 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/goals', financialGoalRoutes);
+app.use('/api/chatbot', chatbotRoutes); // Add chatbot routes
 app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => console.log(Server running on port ${PORT}));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

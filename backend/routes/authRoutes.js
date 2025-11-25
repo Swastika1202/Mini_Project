@@ -20,7 +20,7 @@ router.get('/google/callback',
   (req, res) => {
     // Successful authentication, redirect to dashboard or send token
     // For now, let's redirect to a success page or send user info
-    res.redirect(${process.env.FRONTEND_URL}/auth-success?token=${req.user.token});
+    res.redirect(`${process.env.FRONTEND_URL}/auth-success?token=${req.user.token}`);
   }
 );
 

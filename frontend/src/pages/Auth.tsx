@@ -21,6 +21,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null); // New state for avatar file
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null); // New state for avatar preview
+  const [isForgotPassword, setIsForgotPassword] = useState(false); // Re-introducing state for forgot password flow
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -36,23 +37,30 @@ const Auth = () => {
     }
   };
 
-  // const handleGoogleLogin = async () => { // Removed Google Login function
-  //   try {
-  //     const { error } = await supabase.auth.signInWithOAuth({
-  //       provider: 'google',
-  //       options: {
-  //         redirectTo: ${window.location.origin}/,
-  //       },
-  //     });
-  //     if (error) throw error;
-  //   } catch (error) {
-  //     toast({
-  //       title: "Error",
-  //       description: error.message,
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
+  // Re-introducing handleForgotPassword function
+  const handleForgotPassword = async () => {
+    setLoading(true);
+    try {
+      await api.forgotPassword({ email });
+      toast({
+        title: "Password Reset Link Sent",
+        description: "Please check your email for instructions to reset your password.",
+      });
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send password reset link.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/google`; // Redirect to backend for Google OAuth
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +106,7 @@ const Auth = () => {
 
         toast({
           title: "Account created!",
-          description: "Welcome to Phantom Finance. You've successfully signed up.",
+          description: "Welcome to YouthWallet. You've successfully signed up.",
         });
         navigate("/dashboard");
       }
@@ -165,11 +173,13 @@ const Auth = () => {
                 </div>
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-[#0a192f]">
-                {isLogin ? "Welcome Back" : "Create Account"}
+                {isForgotPassword ? "Forgot Password" : isLogin ? "Welcome Back" : "Create Account"}
               </h1>
               <p className="text-slate-500 text-lg">
-                {isLogin 
-                  ? "Enter your details to access your dashboard" 
+                {isForgotPassword
+                  ? "Enter your email to receive a password reset link"
+                  : isLogin
+                  ? "Enter your details to access your dashboard"
                   : "Join us and start tracking your finances today"}
               </p>
             </div>
@@ -178,7 +188,7 @@ const Auth = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => { window.location.href = ${import.meta.env.VITE_BACKEND_URL}/api/auth/google; }}
+              onClick={() => { window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/google`; }}
               className="w-full h-12 bg-white hover:bg-slate-50 border-slate-200 text-slate-700 font-medium text-base shadow-sm transition-all"
             >
               <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
@@ -199,89 +209,121 @@ const Auth = () => {
               </div>
             </div>
 
-            {/* Auth Form */}
-            <form onSubmit={handleAuth} className="space-y-5">
-              {!isLogin && (
-                <div className="flex flex-col sm:flex-row gap-4 animate-in slide-in-from-top-2 fade-in duration-300">
-                  <div className="space-y-2 flex-1">
-                    <Label htmlFor="firstName" className="text-slate-700 font-medium">First Name</Label>
+            {/* Auth Form (Login/Signup) */}
+            {!isForgotPassword && (
+              <form onSubmit={handleAuth} className="space-y-5">
+                {!isLogin && (
+                  <div className="flex flex-col sm:flex-row gap-4 animate-in slide-in-from-top-2 fade-in duration-300">
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="firstName" className="text-slate-700 font-medium">First Name</Label>
+                      <Input
+                        id="firstName"
+                        type="text"
+                        placeholder="John"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required
+                        className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="lastName" className="text-slate-700 font-medium">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        type="text"
+                        placeholder="Doe"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                        className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!isLogin && (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 fade-in duration-300">
+                    <Label htmlFor="designation" className="text-slate-700 font-medium">Designation</Label>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+                      <Input
+                        id="designation"
+                        type="text"
+                        placeholder="e.g. Financial Analyst"
+                        value={designation}
+                        onChange={(e) => setDesignation(e.target.value)}
+                        required
+                        className="pl-9 h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!isLogin && (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 fade-in duration-300">
+                    <Label htmlFor="avatar" className="text-slate-700 font-medium">Avatar</Label>
                     <Input
-                      id="firstName"
-                      type="text"
-                      placeholder="John"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
+                      id="avatar"
+                      type="file"
+                      onChange={handleAvatarChange}
                       className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
                     />
+                    {avatarPreview && (
+                      <div className="mt-4 flex justify-center">
+                        <img src={avatarPreview} alt="Avatar Preview" className="w-24 h-24 rounded-full object-cover" />
+                      </div>
+                    )}
                   </div>
+                )}
 
-                  <div className="space-y-2 flex-1">
-                    <Label htmlFor="lastName" className="text-slate-700 font-medium">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      placeholder="Doe"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                      className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {!isLogin && (
-                <div className="space-y-2 animate-in slide-in-from-top-2 fade-in duration-300">
-                  <Label htmlFor="avatar" className="text-slate-700 font-medium">Avatar</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-slate-700 font-medium">Email</Label>
                   <Input
-                    id="avatar"
-                    type="file"
-                    onChange={handleAvatarChange}
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                     className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
                   />
-                  {avatarPreview && (
-                    <div className="mt-4 flex justify-center">
-                      <img src={avatarPreview} alt="Avatar Preview" className="w-24 h-24 rounded-full object-cover" />
+                </div>
+
+                {!isLogin && (
+                  <div className="flex flex-col sm:flex-row gap-4 animate-in slide-in-from-top-2 fade-in duration-300">
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="password"className="text-slate-700 font-medium">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
+                      />
                     </div>
-                  )}
-                </div>
-              )}
 
-              {!isLogin && (
-                <div className="space-y-2 animate-in slide-in-from-top-2 fade-in duration-300">
-                  <Label htmlFor="designation" className="text-slate-700 font-medium">Designation</Label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
-                    <Input
-                      id="designation"
-                      type="text"
-                      placeholder="e.g. Financial Analyst"
-                      value={designation}
-                      onChange={(e) => setDesignation(e.target.value)}
-                      required
-                      className="pl-9 h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
-                    />
+                    <div className="space-y-2 flex-1 animate-in slide-in-from-top-2 fade-in duration-300">
+                      <Label htmlFor="confirmPassword"className="text-slate-700 font-medium">Confirm Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700 font-medium">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
-                />
-              </div>
-
-              {!isLogin && (
-                <div className="flex flex-col sm:flex-row gap-4 animate-in slide-in-from-top-2 fade-in duration-300">
-                  <div className="space-y-2 flex-1">
+                {isLogin && (
+                  <div className="space-y-2">
                     <Label htmlFor="password"className="text-slate-700 font-medium">Password</Label>
                     <Input
                       id="password"
@@ -294,76 +336,81 @@ const Auth = () => {
                       className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
                     />
                   </div>
+                )}
 
-                  <div className="space-y-2 flex-1 animate-in slide-in-from-top-2 fade-in duration-300">
-                    <Label htmlFor="confirmPassword"className="text-slate-700 font-medium">Confirm Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
-                    />
-                  </div>
+                <div className="flex justify-between items-center">
+                  {isLogin && (
+                    <a 
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-sm text-[#005f73] hover:text-[#004e5f] font-semibold hover:underline cursor-pointer transition-all"
+                    >
+                      Forgot Password?
+                    </a>
+                  )}
                 </div>
-              )}
 
-              {isLogin && (
+                <Button
+                  type="submit"
+                  className="w-full bg-[#005f73] hover:bg-[#004e5f] text-white h-12 text-base font-semibold shadow-md transition-all hover:shadow-lg mt-4"
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
+                </Button>
+              </form>
+            )}
+
+            {/* Forgot Password Form */}
+            {isForgotPassword && (
+              <div className="space-y-5 animate-in slide-in-from-top-2 fade-in duration-300">
                 <div className="space-y-2">
-                  <Label htmlFor="password"className="text-slate-700 font-medium">Password</Label>
+                  <Label htmlFor="email" className="text-slate-700 font-medium">Email</Label>
                   <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
-                    minLength={6}
                     className="h-11 bg-slate-50 border-slate-200 focus:border-[#005f73] focus:ring-1 focus:ring-[#005f73] focus:bg-white transition-all"
                   />
                 </div>
-              )}
-
-              <div className="flex justify-between items-center">
-                {isLogin && (
-                  <a 
-                    onClick={() => navigate('/forgot-password')}
-                    className="text-sm text-[#005f73] hover:text-[#004e5f] font-semibold hover:underline cursor-pointer transition-all"
-                  >
-                    Forgot Password?
-                  </a>
-                )}
+                <Button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="w-full bg-[#005f73] hover:bg-[#004e5f] text-white h-12 text-base font-semibold shadow-md transition-all hover:shadow-lg mt-4"
+                  disabled={loading}
+                >
+                  {loading ? "Sending..." : "Send Reset Link"}
+                </Button>
+                <button 
+                  type="button" 
+                  onClick={() => setIsForgotPassword(false)} 
+                  className="text-sm text-[#005f73] hover:text-[#004e5f] font-semibold hover:underline transition-all text-right block mt-2"
+                >
+                  Back to Login
+                </button>
               </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-[#005f73] hover:bg-[#004e5f] text-white h-12 text-base font-semibold shadow-md transition-all hover:shadow-lg mt-4"
-                disabled={loading}
-              >
-                {loading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
-              </Button>
-            </form>
+            )}
 
             {/* Toggle Login/Signup */}
-            <div className="text-center pt-2">
-              <p className="text-slate-500">
-                {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    setPassword("");
-                    setConfirmPassword("");
-                  }}
-                  className="text-[#005f73] hover:text-[#004e5f] font-semibold hover:underline transition-all"
-                >
-                  {isLogin ? "Sign up" : "Sign in"}
-                </button>
-              </p>
-            </div>
+            {!isForgotPassword && (
+              <div className="text-center pt-2">
+                <p className="text-slate-500">
+                  {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setPassword("");
+                      setConfirmPassword("");
+                    }}
+                    className="text-[#005f73] hover:text-[#004e5f] font-semibold hover:underline transition-all"
+                  >
+                    {isLogin ? "Sign up" : "Sign in"}
+                  </button>
+                </p>
+              </div>
+            )}
 
           </div>
         </div>

@@ -18,11 +18,11 @@ const CTASection = () => {
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
             Take Control of Your{" "}
-            <span className="gradient-text">Finances Today!</span>
+            <span className="gradient-text">YouthWallet Today!</span>
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of young adults who are building better financial futures with Phantom Finance.
+            Join thousands of young adults who are building better financial futures with YouthWallet.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">

@@ -13,7 +13,7 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import AuthSuccess from "./pages/AuthSuccess"; // Import AuthSuccess component
-import ForgotPassword from "./pages/ForgotPassword"; // Import ForgotPassword component
+import ForgetPassword from "./pages/ForgetPassword"; // Import ForgotPassword component
 import ResetPassword from "./pages/ResetPassword"; // Import ResetPassword component
 
 const queryClient = new QueryClient();
@@ -29,8 +29,9 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth-success" element={<AuthSuccess />} /> {/* New route for Google OAuth success */}
-          <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Forgot Password Route */}
+          <Route path="/forgot-password" element={<ForgetPassword />} /> {/* Forgot Password Route */}
           <Route path="/reset-password/:resettoken" element={<ResetPassword />} /> {/* Reset Password Route */}
+          <Route path="/resetpassword/:token" element={<ResetPassword />} />
           
           {/* Protected Dashboard Routes */}
           <Route path="/dashboard" element={<Dashboard />} />

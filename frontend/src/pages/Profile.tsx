@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Mail, Phone, MapPin, Bell,
@@ -22,6 +22,8 @@ const Profile = () => {
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [notifications, setNotifications] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   
@@ -68,6 +70,7 @@ const Profile = () => {
         setLocation(userData.location || '');
         setLinkedinUrl(userData.linkedinUrl || '');
         setNotifications(userData.notifications);
+        setAvatarUrl(userData.avatar || '');
         setProgress(calculateCompletionPercentage()); // Update progress after fetching profile
       } catch (error) {
         console.error("Failed to fetch profile:", error);
@@ -119,6 +122,32 @@ const Profile = () => {
     setNotifications(!notifications);
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const response = await api.uploadAvatar(formData);
+      setAvatarUrl(response.data.avatarUrl);
+      toast({
+        title: "Success",
+        description: "Profile picture updated successfully.",
+      });
+      // Re-calculate progress after avatar update
+      setProgress(calculateCompletionPercentage());
+    } catch (error) {
+      console.error("Failed to upload avatar:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile picture.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
@@ -166,9 +195,17 @@ const Profile = () => {
                  {/* Avatar Image */}
                  <div className="relative z-10">
                      <img 
-                       src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName + lastName}`} 
+                       src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName + lastName}`} 
                        alt="Profile"
                        className="w-32 h-32 rounded-full border-4 border-white shadow-md bg-white object-cover"
+                     />
+                     {/* Hidden file input */}
+                     <input 
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                        accept="image/*"
                      />
                      {/* Progress Badge */}
                      <div className="absolute top-0 right-0 bg-[#10b981] text-white text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-white shadow-sm">
@@ -177,7 +214,10 @@ const Profile = () => {
                  </div>
 
                  {/* Camera Button */}
-                 <button className="absolute bottom-2 right-2 z-20 bg-[#0a192f] text-white p-2 rounded-full hover:bg-[#005f73] transition-colors border-2 border-white shadow-lg">
+                 <button 
+                    className="absolute bottom-2 right-2 z-20 bg-[#0a192f] text-white p-2 rounded-full hover:bg-[#005f73] transition-colors border-2 border-white shadow-lg"
+                    onClick={() => fileInputRef.current?.click()}
+                 >
                     <Camera size={16} />
                  </button>
               </div>
