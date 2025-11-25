@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   ArrowUpRight,
@@ -9,11 +9,12 @@ import {
   ShoppingBag,
   Coffee,
   Car,
-  PieChart,
+  Target, // Imported Target Icon
   Calendar,
   MoreHorizontal,
-  Search // <-- Ye add kar diya hai
+  Search
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../utils/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -50,6 +51,40 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [period, toast]);
 
+  const formattedSpendingTrend = useMemo(() => {
+    const dataMap: { [key: string]: number } = {};
+    spendingTrendData.forEach((item: { date: string | number | Date; amount: any; }) => {
+      let label = '';
+      const date = new Date(item.date);
+      if (period === 'Weekly') {
+        label = date.toLocaleDateString('en-US', { weekday: 'short' });
+      } else if (period === 'Monthly') {
+        label = `Week ${Math.ceil(date.getDate() / 7)}`;
+      } else if (period === 'Yearly') {
+        label = date.toLocaleDateString('en-US', { month: 'short' });
+      }
+      dataMap[label] = (dataMap[label] || 0) + item.amount;
+    });
+
+    const chartData = Object.keys(dataMap).map(label => ({
+      name: label,
+      expenses: dataMap[label],
+    }));
+
+    // Ensure consistent order for weekly/monthly/yearly
+    if (period === 'Weekly') {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days.map(day => chartData.find(data => data.name === day) || { name: day, expenses: 0 });
+    } else if (period === 'Monthly') {
+      const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+      return weeks.map(week => chartData.find(data => data.name === week) || { name: week, expenses: 0 });
+    } else if (period === 'Yearly') {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return months.map(month => chartData.find(data => data.name === month) || { name: month, expenses: 0 });
+    }
+    return chartData;
+  }, [spendingTrendData, period]);
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -62,7 +97,7 @@ const Dashboard = () => {
            </div>
 
            <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm animate-in slide-in-from-right fade-in duration-500">
-              {['Weekly', 'Monthly', 'Yearly'].map((p) => (
+              {[ 'Weekly', 'Monthly', 'Yearly' ].map((p) => (
                  <button
                     key={p}
                     onClick={() => setPeriod(p)}
@@ -79,33 +114,68 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-             { title: 'Total Income', val: `₹${totalIncome.toFixed(2)}`, inc: '+15%', isPos: true, icon: ArrowDownRight, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-             { title: 'Total Expenses', val: `₹${totalExpenses.toFixed(2)}`, inc: '-8%', isPos: true, icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' },
-             { title: 'Net Savings', val: `₹${netSavings.toFixed(2)}`, inc: '+22%', isPos: true, icon: Wallet, color: 'text-[#005f73]', bg: 'bg-cyan-50' },
-          ].map((item, i) => (
-             <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group cursor-default">
-                <div className="flex justify-between items-start mb-6">
-                   <div className={`w-12 h-12 rounded-xl ${item.bg} ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                      <item.icon size={24} />
-                   </div>
-                   <div className={`px-3 py-1 rounded-full text-xs font-bold ${item.isPos ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {item.inc} vs last month
-                   </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Income Card */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group cursor-default">
+             <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                   <ArrowDownRight size={24} />
                 </div>
-                <div>
-                   <p className="text-slate-500 font-medium text-sm mb-1">{item.title}</p>
-                   <h3 className="text-3xl font-bold text-[#0a192f]">{item.val}</h3>
-                </div>
+                <div className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">+15%</div>
              </div>
-          ))}
+             <div>
+                <p className="text-slate-500 font-medium text-sm mb-1">Total Income</p>
+                <h3 className="text-2xl font-bold text-[#0a192f]">₹{totalIncome.toFixed(2)}</h3>
+             </div>
+          </div>
+
+          {/* Expenses Card */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group cursor-default">
+             <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                   <ArrowUpRight size={24} />
+                </div>
+                <div className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">-8%</div>
+             </div>
+             <div>
+                <p className="text-slate-500 font-medium text-sm mb-1">Total Expenses</p>
+                <h3 className="text-2xl font-bold text-[#0a192f]">₹{totalExpenses.toFixed(2)}</h3>
+             </div>
+          </div>
+
+          {/* Savings Card */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group cursor-default">
+             <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 rounded-xl bg-cyan-50 text-[#005f73] flex items-center justify-center group-hover:scale-110 transition-transform">
+                   <Wallet size={24} />
+                </div>
+                <div className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">+22%</div>
+             </div>
+             <div>
+                <p className="text-slate-500 font-medium text-sm mb-1">Net Savings</p>
+                <h3 className="text-2xl font-bold text-[#0a192f]">₹{netSavings.toFixed(2)}</h3>
+             </div>
+          </div>
+
+          {/* NEW: Active Goals Card */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group cursor-pointer" onClick={() => window.location.href='/future-goals'}>
+             <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                   <Target size={24} />
+                </div>
+                <div className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">In Progress</div>
+             </div>
+             <div>
+                <p className="text-slate-500 font-medium text-sm mb-1">Active Goals</p>
+                <h3 className="text-2xl font-bold text-[#0a192f]">3 Goals</h3>
+             </div>
+          </div>
         </div>
 
         {/* Analytics Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-           {/* Main Spending Trend (Curved Line Chart Visual) */}
+           {/* Main Spending Trend (Line Chart) */}
            <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
               <div className="flex justify-between items-center mb-8 relative z-10">
                  <div>
@@ -121,78 +191,52 @@ const Dashboard = () => {
                  </div>
               </div>
 
-              {/* Advanced Chart Visualization (CSS + SVG) */}
+              {/* Recharts Line Chart */}
               <div className="relative h-64 w-full">
-                 {/* Grid Lines */}
-                 <div className="absolute inset-0 flex flex-col justify-between text-slate-300 text-xs font-medium z-0">
-                    <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
-                    <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
-                    <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
-                    <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
-                    <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
-                 </div>
-
-                 {/* The Curve */}
-                 <svg className="absolute inset-0 w-full h-full z-10 overflow-visible" preserveAspectRatio="none">
-                    <defs>
-                       <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#005f73" stopOpacity="0.2" />
-                          <stop offset="100%" stopColor="#005f73" stopOpacity="0" />
-                       </linearGradient>
-                    </defs>
-                    {/* Dynamic Path Generation */}
-                    {spendingTrendData.length > 1 && (
-                      <>
-                        {/* Fill Area */}
-                        <path
-                           d={`M0,${250 - (spendingTrendData[0].amount / totalExpenses) * 200} ` +
-                              spendingTrendData.map((item, index) => {
-                                const x = (index / (spendingTrendData.length - 1)) * 1200;
-                                const y = 250 - (item.amount / totalExpenses) * 200;
-                                return `L${x},${y}`;
-                              }).join(' ') + ` L1200,256 L0,256 Z`}
-                           fill="url(#gradient)"
-                        />
-                        {/* Stroke Line */}
-                        <path
-                           d={`M0,${250 - (spendingTrendData[0].amount / totalExpenses) * 200} ` +
-                              spendingTrendData.map((item, index) => {
-                                const x = (index / (spendingTrendData.length - 1)) * 1200;
-                                const y = 250 - (item.amount / totalExpenses) * 200;
-                                return `L${x},${y}`;
-                              }).join(' ')}
-                           fill="none"
-                           stroke="#005f73"
-                           strokeWidth="4"
-                           strokeLinecap="round"
-                           className="drop-shadow-lg"
-                        />
-                        {/* Points */}
-                        {spendingTrendData.map((item, index) => {
-                           const x = (index / (spendingTrendData.length - 1)) * 1200;
-                           const y = 250 - (item.amount / totalExpenses) * 200;
-                           return (
-                             <circle
-                               key={index}
-                               cx={x}
-                               cy={y}
-                               r="6"
-                               fill="white"
-                               stroke="#005f73"
-                               strokeWidth="3"
-                               className="hover:scale-150 transition-all cursor-pointer"/>
-                           );
-                        })}
-                      </>
-                    )}
-                 </svg>
-
-                 {/* X Axis Labels */}
-                 <div className="absolute bottom-0 w-full flex justify-between text-xs font-bold text-slate-400 mt-2">
-                    {period === 'Weekly' && (<span>Mon</span>)}<span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                    {period === 'Monthly' && (<span>Week 1</span>)}<span>Week 2</span><span>Week 3</span><span>Week 4</span>
-                    {period === 'Yearly' && (<span>Jan</span>)}<span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
-                 </div>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={formattedSpendingTrend}
+                    margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      interval="preserveStartEnd"
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      padding={{ left: 20, right: 20 }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `₹${value}`}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                    />
+                    <Tooltip
+                      cursor={{ stroke: '#005f73', strokeWidth: 2 }}
+                      formatter={(value: number) => [`₹${value.toFixed(2)}`, 'Expenses']}
+                      labelFormatter={(label) => `Period: ${label}`}
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        borderColor: '#e2e8f0',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        padding: '0.5rem 0.75rem',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                      }}
+                      labelStyle={{ color: '#0a192f', fontWeight: 'bold' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="expenses"
+                      stroke="#005f73"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#005f73', stroke: '#fff', strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: '#005f73', stroke: '#fff', strokeWidth: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
            </div>
 
@@ -209,13 +253,13 @@ const Dashboard = () => {
                     className="w-full h-full rounded-full"
                     style={{
                        background: `conic-gradient(${topSpendingCategories.map((cat, i, arr) => {
-                         const percentage = (cat.amount / totalExpenses) * 100;
-                         const prevPercentages = arr.slice(0, i).reduce((sum, pc) => sum + (pc.amount / totalExpenses) * 100, 0);
-                         const start = prevPercentages;
-                         const end = prevPercentages + percentage;
-                         const color = ['#005f73', '#0a9396', '#94d2bd', '#e9d8a6'][i % 4];
-                         return `${color} ${start}% ${end}%`;
-                       }).join(', ')}`
+                          const percentage = (cat.amount / totalExpenses) * 100;
+                          const prevPercentages = arr.slice(0, i).reduce((sum, pc) => sum + (pc.amount / totalExpenses) * 100, 0);
+                          const start = prevPercentages;
+                          const end = prevPercentages + percentage;
+                          const color = ['#005f73', '#0a9396', '#94d2bd', '#e9d8a6'][i % 4];
+                          return `${color} ${start}% ${end}%`;
+                       }).join(', ')})`
                     }}
                  ></div>
                  <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">

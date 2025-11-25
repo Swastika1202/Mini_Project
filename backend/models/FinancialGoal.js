@@ -22,6 +22,10 @@ const FinancialGoalSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Current amount must be a positive number'],
   },
+  targetDate: {
+    type: Date,
+    required: [true, 'Please add a target date'],
+  },
   icon: {
     type: String,
     enum: ['Wallet', 'Car', 'Home', 'Target'], // Predefined icons

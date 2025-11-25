@@ -13,9 +13,9 @@ const getFinancialGoals = asyncHandler(async (req, res) => {
 // @route   POST /api/goals
 // @access  Private
 const createFinancialGoal = asyncHandler(async (req, res) => {
-  const { name, targetAmount, icon } = req.body;
+  const { name, targetAmount, targetDate, icon } = req.body;
 
-  if (!name || !targetAmount) {
+  if (!name || !targetAmount || !targetDate) {
     res.status(400);
     throw new Error('Please add all required fields');
   }
@@ -24,6 +24,7 @@ const createFinancialGoal = asyncHandler(async (req, res) => {
     userId: req.user.id,
     name,
     targetAmount,
+    targetDate,
     icon,
   });
 
@@ -47,7 +48,15 @@ const updateFinancialGoal = asyncHandler(async (req, res) => {
     throw new Error('User not authorized');
   }
 
-  const updatedGoal = await FinancialGoal.findByIdAndUpdate(req.params.id, req.body, {
+  const { name, targetAmount, currentAmount, targetDate, icon } = req.body;
+
+  const updatedGoal = await FinancialGoal.findByIdAndUpdate(req.params.id, {
+    name,
+    targetAmount,
+    currentAmount,
+    targetDate,
+    icon,
+  }, {
     new: true,
     runValidators: true,
   });

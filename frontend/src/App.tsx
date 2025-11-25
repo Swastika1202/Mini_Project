@@ -11,10 +11,11 @@ import Expenses from "./pages/Expenses";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
+import FutureGoals from "./pages/FutureGoal"; // Imported FutureGoals
 import NotFound from "./pages/NotFound";
-import AuthSuccess from "./pages/AuthSuccess"; // Import AuthSuccess component
-import ForgetPassword from "./pages/ForgetPassword"; // Import ForgotPassword component
-import ResetPassword from "./pages/ResetPassword"; // Import ResetPassword component
+import AuthSuccess from "./pages/AuthSuccess";
+import ForgetPassword from "./pages/ForgetPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -28,17 +29,18 @@ const App = () => (
           {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/auth-success" element={<AuthSuccess />} /> {/* New route for Google OAuth success */}
-          <Route path="/forgot-password" element={<ForgetPassword />} /> {/* Forgot Password Route */}
-          <Route path="/reset-password/:resettoken" element={<ResetPassword />} /> {/* Reset Password Route */}
+          <Route path="/auth-success" element={<AuthSuccess />} />
+          <Route path="/forgot-password" element={<ForgetPassword />} />
+          <Route path="/reset-password/:resettoken" element={<ResetPassword />} />
           <Route path="/resetpassword/:token" element={<ResetPassword />} />
           
           {/* Protected Dashboard Routes */}
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/income" element={<Income />} />       {/* Income Page */}
-          <Route path="/expenses" element={<Expenses />} />   {/* Expenses Page */}
-          <Route path="/analytics" element={<Analytics />} /> {/* Analytics Page */}
-          <Route path="/settings" element={<Settings />} />   {/* Settings Page */}
+          <Route path="/income" element={<Income />} />
+          <Route path="/expenses" element={<Expenses />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/future-goals" element={<FutureGoals />} /> {/* New Route Added */}
+          <Route path="/settings" element={<Settings />} />
           <Route path="/profile" element={<Profile />} />
           
           {/* Fallback Route */}
