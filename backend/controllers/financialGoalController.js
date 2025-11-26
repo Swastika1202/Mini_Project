@@ -5,6 +5,7 @@ const asyncHandler = require('express-async-handler');
 // @route   GET /api/goals
 // @access  Private
 const getFinancialGoals = asyncHandler(async (req, res) => {
+  console.log("User ID in getFinancialGoals:", req.user.id); // Add this line
   const goals = await FinancialGoal.find({ userId: req.user.id });
   res.status(200).json(goals);
 });
@@ -20,15 +21,20 @@ const createFinancialGoal = asyncHandler(async (req, res) => {
     throw new Error('Please add all required fields');
   }
 
-  const goal = await FinancialGoal.create({
-    userId: req.user.id,
-    name,
-    targetAmount,
-    targetDate,
-    icon,
-  });
-
-  res.status(201).json(goal);
+  try {
+    const goal = await FinancialGoal.create({
+      userId: req.user.id,
+      name,
+      targetAmount,
+      targetDate,
+      icon,
+    });
+  
+    res.status(201).json(goal);
+  } catch (error) {
+    console.error("Error creating financial goal:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
 });
 
 // @desc    Update a financial goal

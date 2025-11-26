@@ -28,7 +28,7 @@ const FinancialGoalSchema = new mongoose.Schema({
   },
   icon: {
     type: String,
-    enum: ['Wallet', 'Car', 'Home', 'Target'], // Predefined icons
+    enum: ['Wallet', 'Car', 'Home', 'Target', 'Travel', 'Education', 'Gadget', 'General', 'Gift'], // Expanded icons
     default: 'Wallet',
   },
   createdAt: {

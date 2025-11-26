@@ -16,7 +16,10 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../utils/api';
+import axios from 'axios';
 import { useToast } from '@/hooks/use-toast';
+
+const API_BASE_URL = 'http://localhost:5000/api/goals';
 
 const Dashboard = () => {
   const [period, setPeriod] = useState('Weekly');
@@ -26,6 +29,8 @@ const Dashboard = () => {
   const [spendingTrendData, setSpendingTrendData] = useState([]);
   const [topSpendingCategories, setTopSpendingCategories] = useState([]);
   const [transactionHistory, setTransactionHistory] = useState([]);
+  const [activeGoalsCount, setActiveGoalsCount] = useState(0); // New state for active goals count
+  const [activeGoalsLoading, setActiveGoalsLoading] = useState(true); // New state for loading
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,7 +53,38 @@ const Dashboard = () => {
         });
       }
     };
+
+    const fetchActiveGoals = async () => {
+      try {
+        setActiveGoalsLoading(true);
+        const token = localStorage.getItem('token');
+        const config = {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        };
+        const response = await axios.get(API_BASE_URL, config);
+        const allGoals = response.data;
+        const now = new Date();
+        const activeGoals = allGoals.filter((goal: any) => {
+          const targetDate = new Date(goal.targetDate);
+          return goal.currentAmount < goal.targetAmount && targetDate > now;
+        });
+        setActiveGoalsCount(activeGoals.length);
+      } catch (error) {
+        console.error("Failed to fetch active goals:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load active goals.",
+          variant: "destructive",
+        });
+      } finally {
+        setActiveGoalsLoading(false);
+      }
+    };
+
     fetchDashboardData();
+    fetchActiveGoals(); // Fetch active goals on component mount
   }, [period, toast]);
 
   const formattedSpendingTrend = useMemo(() => {
@@ -167,7 +203,9 @@ const Dashboard = () => {
              </div>
              <div>
                 <p className="text-slate-500 font-medium text-sm mb-1">Active Goals</p>
-                <h3 className="text-2xl font-bold text-[#0a192f]">3 Goals</h3>
+                <h3 className="text-2xl font-bold text-[#0a192f]">
+                  {activeGoalsLoading ? '...' : `${activeGoalsCount} Goals`}
+                </h3>
              </div>
           </div>
         </div>
