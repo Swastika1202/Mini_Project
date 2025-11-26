@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000/api"; // Assuming your backend runs on port 5000
+const API_BASE_URL = "https://mini-project-2gg5.onrender.com/api"; // Updated API Base URL
 
 const api = {
   register: async (userData) => {

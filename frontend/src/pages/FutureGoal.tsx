@@ -18,7 +18,7 @@ import {
   Calculator
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000/api/goals';
+const API_BASE_URL = 'https://mini-project-2gg5.onrender.com/api/goals'; // Updated API Base URL
 
 // --- Mock Data ---
 const INITIAL_GOALS: any[] = [];

@@ -118,7 +118,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       formData.append('language', 'en');
       if (selectedFile) formData.append('file', selectedFile);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/chatbot', {
+      const response = await fetch('https://mini-project-2gg5.onrender.com/api/chatbot', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

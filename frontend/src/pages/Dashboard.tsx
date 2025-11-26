@@ -19,7 +19,7 @@ import api from '../utils/api';
 import axios from 'axios';
 import { useToast } from '@/hooks/use-toast';
 
-const API_BASE_URL = 'http://localhost:5000/api/goals';
+const API_BASE_URL = 'https://mini-project-2gg5.onrender.com/api/goals'; // Updated API Base URL
 
 const Dashboard = () => {
   const [period, setPeriod] = useState('Weekly');
