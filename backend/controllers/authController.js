@@ -6,7 +6,7 @@ const cloudinary = require('../config/cloudinary'); // Import cloudinary config
 
 const generateToken = (id, avatar) => {
   return jwt.sign({ id, avatar }, process.env.JWT_SECRET, {
-    expiresIn: '1h',
+    expiresIn: '3d',
   });
 };
 
@@ -166,7 +166,7 @@ const resetPassword = async (req, res) => {
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     res.status(200).json({ success: true, message: 'Password reset successfully' });
   } catch (error) {
@@ -175,4 +175,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, forgotPassword, resetPassword };
+module.exports = { registerUser, loginUser, forgotPassword, resetPassword, generateToken };

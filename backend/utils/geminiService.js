@@ -1,8 +1,9 @@
-const pdfParse = require('pdf-parse');
+const PdfReader = require('pdfreader').PdfReader;
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 const Tesseract = require('tesseract.js');
+const mammoth = require('mammoth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -36,8 +37,18 @@ const getChatbotResponse = async (prompt, userName, language, file = null) => {
         console.log('geminiService: Detected file extension:', ext);
 
             if (ext === '.pdf') {
-                const pdfData = await pdfParse(file.buffer); // Read from buffer
-                extractedText = pdfData.text;
+                extractedText = await new Promise((resolve, reject) => {
+                    new PdfReader().parseBuffer(file.buffer, (err, item) => {
+                        if (err) {
+                            console.error('Error parsing PDF:', err);
+                            return reject(err);
+                        } else if (!item) {
+                            return resolve(extractedText);
+                        } else if (item.text) {
+                            extractedText += item.text + ' ';
+                        }
+                    });
+                });
                 console.log('📄 PDF text extracted successfully');
             } else if (['.jpg', '.jpeg', '.png'].includes(ext)) {
                 // For image files, read as base64 for Gemini Vision
@@ -51,6 +62,10 @@ const getChatbotResponse = async (prompt, userName, language, file = null) => {
                 const result = await Tesseract.recognize(file.buffer, 'eng'); // Pass buffer to Tesseract
                 extractedText = result.data.text;
                 console.log('🖼️ Image OCR extracted successfully');
+            } else if (ext === '.docx') {
+                const docxData = await mammoth.extractRawText({ buffer: file.buffer });
+                extractedText = docxData.value;
+                console.log('📄 DOCX text extracted successfully');
             }
         }
 
@@ -58,8 +73,16 @@ const getChatbotResponse = async (prompt, userName, language, file = null) => {
 
         // 🧠 Step 2: Create prompt
         const tone = isHindi
-            ? `You are YouthWallet’s friendly and helpful financial assistant.\n             Always address the user by their name (${currentUserName}) and clearly answer all finance-related queries.\n             End each response with: "Main 100% sahi nahi ho sakta, kripya kisi financial advisor se consult kare."`
-            : `You are YouthWallet’s friendly and helpful financial assistant.\n             Always address the user by their name (${currentUserName}) and clearly answer all finance-related queries.\n             End each response with: "I\'m not 100% accurate, please consult a financial advisor for confirmation."`;
+            ? `आप यूथवॉलेट के मित्रवत और सहायक वित्तीय सहायक हैं।
+             आपको केवल वित्त-संबंधी प्रश्नों का उत्तर देना चाहिए। यदि कोई प्रश्न वित्त से संबंधित नहीं है, तो विनम्रता से बताएं कि आप केवल वित्त से संबंधित मामलों में सहायता कर सकते हैं। यदि कोई दस्तावेज़ अपलोड किया गया है और वह वित्त से संबंधित नहीं है, तो दस्तावेज़ के कुछ अंश का उल्लेख करें और फिर अपनी सीमाएं बताएं।
+             उपयोगकर्ता को उनके नाम (${currentUserName}) से संबोधित करें।
+             अपने उत्तरों को **बुलेट पॉइंट** में दें। प्रत्येक बुलेट पॉइंट एक नया पैराग्राफ होना चाहिए, और प्रत्येक पैराग्राफ के बीच कम से कम दो खाली लाइनें छोड़ें ताकि वे स्पष्ट रूप से अलग दिखें। महत्वपूर्ण कीवर्ड को **बोल्ड** करें।
+             प्रत्येक प्रतिक्रिया का अंत इससे करें: "मैं 100% सही नहीं हो सकता, कृपया किसी वित्तीय सलाहकार से सलाह लें।"`
+            : `You are YouthWallet’s friendly and helpful financial assistant.
+             You should only answer finance-related questions. If a question is not related to finance, politely state that you can only assist with finance-related matters. If a document is uploaded and its content is not finance-related, mention a brief snippet of the document's content and then state your limitations.
+             Always address the user by their name (${currentUserName}).
+             Provide your answers in **bullet points**. Each bullet point must be a new paragraph, and there must be at least two empty lines between each paragraph to ensure clear separation. **Bold** important keywords.
+             End each response with: "I'm not 100% accurate, please consult a financial advisor for confirmation."`;
 
         let userQueryText = prompt || ''; // User's original message
 
@@ -93,9 +116,10 @@ const getChatbotResponse = async (prompt, userName, language, file = null) => {
                 textPromptContent += `along with the extracted text `;
             }
             textPromptContent += `and respond in ${isHindi ? 'Hindi' : 'English'} language.`;
-        } else if (extractedText) { // Only extracted text (e.g., from PDF, or OCR from image without explicit image analysis instruction)
-            textPromptContent = `The user has uploaded a financial document/report. Here is the extracted text:\n"${extractedText}"\n\n`;
-            textPromptContent += `Analyze this document/report and explain it in ${isHindi ? 'Hindi' : 'English'} language.`
+        } else if (extractedText) { // Only extracted text (e.g., from PDF, DOCX, or OCR from image without explicit image analysis instruction)
+            textPromptContent = `The user has uploaded a document/report. Here is the extracted text:
+"${extractedText}"\n\n`;
+            textPromptContent += `Please analyze this document/report and explain it in ${isHindi ? 'Hindi' : 'English'} language. Remember, if the content is not finance-related, acknowledge the content and then politely state your limitation.`;
             if (userQueryText) {
                 textPromptContent += ` User also said: "${userQueryText}".`;
             }
